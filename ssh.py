@@ -3,11 +3,11 @@ from twisted.conch.avatar import ConchUser
 from twisted.conch.interfaces import ISession
 from twisted.conch.ssh import factory, userauth, connection, keys, session
 from twisted.conch.ssh.factory import SSHFactory
-from twisted.cred import portal, checkers
-from twisted.cred.portal import Portal
 from twisted.internet import protocol
-from zope.interface.declarations import implements
-from shared import GitRealm
+from twisted.python import components
+from zope.interface.declarations import implements, providedBy
+import zope
+from interface import IInvocationRequestHandler
 
 publicKey = 'ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAGEArzJx8OYOnJmzf4tfBEvLi8DVPrJ3/c9k2I/Az64fxjHf9imyRJbixtQhlH9lfNjUIx+4LmrJH5QNRsFporcHDKOTwTTYLh5KmRpslkYHRivcJSkbh/C+BR3utDS555mV'
 
@@ -24,22 +24,37 @@ pSTqy7c3a2AScC/YyOwkDaICHnnD3XyjMwIxALRzl0tQEKMXs6hH8ToUdlLROCrP
 EhQ0wahUTCk1gKA4uPD6TMTChavbh4K63OvbKg==
 -----END RSA PRIVATE KEY-----"""
 
-class GitSession(object):
+class ShellProtocol (protocol.Protocol):
+
+    def connectionMade(self):
+        pass
+
+        self.transport.write("Hi! I only accept SSH sessions through Git.\r\nSorry.\r\n")
+        self.transport.loseConnection()
+
+class GitConchSession(object):
     implements(ISession)
 
-    def __init__(self, avatar):
-        """Implement"""
+    def __init__(self, user):
+        self.user = user
 
     def getPty(self, term, windowSize, attrs):
+        print "getPty"
         pass
 
     def execCommand(self, proto, cmd):
-        raise Exception("no executing commands")
+        # requestHandler.handle(cmd)
+        # raise Exception("no executing commands")
+        if IInvocationRequestHandler.providedBy(self.user.requestHandler):
+            self.user.requestHandler.handle(self.user.requestHandler.SSHInvocationRequest(cmd, proto))
+        else:
+            raise Exception("requestHandler does not implement correct interface")
+
 
     def openShell(self, trans):
-        ep = EchoProtocol()
-        ep.makeConnection(trans)
-        trans.makeConnection(session.wrapProtocol(ep))
+        protocol = ShellProtocol()
+        protocol.makeConnection(trans)
+        trans.makeConnection(session.wrapProtocol(protocol))
 
     def eofReceived(self):
         pass
@@ -49,8 +64,11 @@ class GitSession(object):
 
 class GitConchUser(ConchUser):
 
-    def __init__(self, username, meta):
-        ConchUser.__init__(self)
+    def __init__(self, username, requestHandler):
+        avatar.ConchUser.__init__(self)
+        self.username = username
+        self.channelLookup.update({'session':session.SSHSession})
+        self.requestHandler = requestHandler
 
 class GitSSH(SSHFactory):
 
@@ -67,21 +85,5 @@ class GitSSH(SSHFactory):
 
     def __init__(self, portal):
         self.portal = portal
-
-class GitAvatar(avatar.ConchUser):
-
-    def __init__(self, username):
-        avatar.ConchUser.__init__(self)
-        self.username = username
-        self.channelLookup.update({'session':session.SSHSession})
-
-class EchoProtocol(protocol.Protocol):
-    """this is our example protocol that we will run over SSH
-    """
-    def dataReceived(self, data):
-        if data == '\r':
-            data = '\r\n'
-        elif data == '\x03': #^C
-            self.transport.loseConnection()
-            return
-        self.transport.write(data)
+        
+        components.registerAdapter(GitConchSession, GitConchUser, ISession)

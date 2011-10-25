@@ -1,13 +1,49 @@
 from zope.interface import Interface
+from zope.interface.interface import Attribute
 
-class GitRequest(Interface):
+class IExecutionMechanism(Interface):
 
+    def execute(self, proto, command, repository):
+        """Executes shizzle"""
+
+class IInvocationRequest(Interface):
+
+    """A request that came in through HTTP or SSH"""
+
+    executionMechanism = Attribute("Implementation of IExecutionMechanism")
+
+    def __init__(self, request, proto):
+        """Handle it"""
+        
+    def getRepositoryPath(self):
+        """Return the path to the requested repository"""
+
+    def getProtocol(self):
+        """Return the protocol the request originates from"""
+
+    def getCommand(self):
+        """Returns the command that needs to be executed"""
+
+    def getExecutionMechanism(self):
+        """Return an instance of the execution mechanism used by this kind of request"""
+
+class IInvocationRequestHandler(Interface):
     """The main invocation logic when handling a Git request"""
 
-    def handle(self):
+    SSHInvocationRequest = Attribute("Implementation of IInvocationRequest for SSH protocol")
+    HTTPInvocationRequest = Attribute("Implementation of IInvocationRequest for HTTP protocol")
+
+    RepositoryRouter = Attribute("Implementation of IRepositoryRouter")
+
+    def handle(self, request):
         """Handle a request through Git"""
 
-class GitAuthentication(Interface):
+class IRepositoryRouter(Interface):
+
+    def route(self, repository):
+        "Returns an absolute path to the repository"
+
+class IAuthorization(Interface):
 
     """The authentication logic"""
 

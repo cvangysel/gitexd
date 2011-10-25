@@ -1,17 +1,28 @@
 from twisted.web.resource import Resource
+from twisted.web.server import Site, NOT_DONE_YET
+from twisted.web.twcgi import CGIScript, CGIProcessProtocol
+from interface import IInvocationRequestHandler
 
-class RepositoryRequest(Resource):
-    def __init__(self, repository):
-        Resource.__init__(self)
-        self.repository = repository
+class GitHTTP(CGIScript):
 
-    def render_GET(self, request):
-        return self.repository
+    isLeaf = False
 
-class GitHTTP(Resource):
+    children = []
+
+    def __init__(self, requestHandler):
+        CGIScript.__init__(self, None)
+        self.requestHandler = requestHandler
+
     def getChild(self, name, request):
-        return RepositoryRequest(name)
+        return GitHTTP(self.requestHandler)
 
-    def render_GET(self, request):
-        return "hello world"
-    
+    def runProcess(self, env, request, qargs = {}):
+        if IInvocationRequestHandler.providedBy(self.requestHandler):
+            proto = CGIProcessProtocol(request)
+
+            request.env = env
+            request.qargs = qargs
+
+            self.requestHandler.handle(self.requestHandler.HTTPInvocationRequest(request, proto))
+        else:
+            raise Exception("requestHandler does not implement correct interface")
