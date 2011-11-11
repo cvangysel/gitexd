@@ -50,11 +50,12 @@ class BaseHTTPExecutionMechanism:
 
 class BaseInvocationRequest:
 
-    def __init__(self, proto):
+    def __init__(self, proto, user):
         if not IExecutionMechanism.providedBy(self.executionMechanism):
             raise Exception("Handle this")
 
         self.proto = proto
+        self.user = user
 
     def getProtocol(self):
         return self.proto
@@ -68,13 +69,16 @@ class BaseInvocationRequest:
     def getCommand(self):
         return self.command
 
+    def getUser(self):
+        return self.user
+
 class BaseHTTPInvocationRequest(BaseInvocationRequest):
     implements(IInvocationRequest)
 
     executionMechanism = BaseHTTPExecutionMechanism()
 
-    def __init__(self, request, proto):
-        BaseInvocationRequest.__init__(self, proto);
+    def __init__(self, request, proto, user):
+        BaseInvocationRequest.__init__(self, proto, user);
 
         self.repoPath = request.prepath[:-1]
         self.command = request
@@ -86,8 +90,8 @@ class BaseSSHInvocationRequest(BaseInvocationRequest):
 
     executionMechanism = BaseSSHExecutionMechanism()
 
-    def __init__(self, request, proto):
-        BaseInvocationRequest.__init__(self, proto);
+    def __init__(self, request, proto, user):
+        BaseInvocationRequest.__init__(self, proto, user);
 
         argv = shlex.split(request)
 

@@ -27,6 +27,9 @@ class IInvocationRequest(Interface):
     def getExecutionMechanism(self):
         """Return an instance of the execution mechanism used by this kind of request"""
 
+    def getUser(self):
+        """Return the user that invocated the request"""
+
 class IInvocationRequestHandler(Interface):
     """The main invocation logic when handling a Git request"""
 
@@ -37,7 +40,7 @@ class IInvocationRequestHandler(Interface):
 
     Authentication = Attribute("Instantation of a implementation of IAuthentication")
 
-    def handle(self, request):
+    def handle(self, request, user):
         """Handle a request through Git"""
 
 class IRepositoryRouter(Interface):

@@ -1,6 +1,4 @@
 from twisted.application.service import Application
-from twisted.cred import checkers
-from twisted.cred.credentials import DigestCredentialFactory
 from twisted.cred.portal import Portal
 from twisted.plugin import getPlugins
 from twisted.python import log
@@ -8,13 +6,10 @@ from twisted.web._auth.basic import BasicCredentialFactory
 from twisted.web._auth.wrapper import HTTPAuthSessionWrapper
 from twisted.internet import reactor
 from twisted.web.server import Site
-import sys
-#from protocol.authentication import PublicKeyChecker
-#from gitdaemon.protocol.ssh import GitSSH
 from gitdaemon.protocol.authentication import PublicKeyChecker, PasswordChecker
 from gitdaemon.protocol.ssh import GitSSH
+from gitdaemon.shared.realm import Realm
 import interfaces
-from shared import GitRealm
 
 if __name__ == '__main__':
     log.msg("Initializing GitDaemon ...")
@@ -28,7 +23,7 @@ if __name__ == '__main__':
     else:
         application = Application("GitDaemon") # Create the application
 
-        portal = Portal(GitRealm(requestHandler))
+        portal = Portal(Realm(requestHandler))
 
         portal.registerChecker(PublicKeyChecker(requestHandler.Authentication))
         portal.registerChecker(PasswordChecker(requestHandler.Authentication))

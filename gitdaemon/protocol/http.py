@@ -9,12 +9,13 @@ class GitHTTP(CGIScript):
 
     children = []
 
-    def __init__(self, requestHandler):
+    def __init__(self, requestHandler, user):
         CGIScript.__init__(self, None)
         self.requestHandler = requestHandler
+        self.user = user
 
     def getChild(self, name, request):
-        return GitHTTP(self.requestHandler)
+        return GitHTTP(self.requestHandler, self.user)
 
     def runProcess(self, env, request, qargs = {}):
         if IInvocationRequestHandler.providedBy(self.requestHandler):
@@ -23,6 +24,6 @@ class GitHTTP(CGIScript):
             request.env = env
             request.qargs = qargs
 
-            self.requestHandler.handle(self.requestHandler.HTTPInvocationRequest(request, proto))
+            self.requestHandler.handle(self.requestHandler.HTTPInvocationRequest(request, proto, self.user))
         else:
             raise Exception("requestHandler does not implement correct interface")

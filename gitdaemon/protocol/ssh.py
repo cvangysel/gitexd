@@ -8,6 +8,7 @@ from twisted.python import components
 from zope.interface.declarations import implements, providedBy
 import zope
 from gitdaemon.interfaces import IInvocationRequestHandler
+from gitdaemon.shared.user import User
 
 publicKey = 'ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAGEArzJx8OYOnJmzf4tfBEvLi8DVPrJ3/c9k2I/Az64fxjHf9imyRJbixtQhlH9lfNjUIx+4LmrJH5QNRsFporcHDKOTwTTYLh5KmRpslkYHRivcJSkbh/C+BR3utDS555mV'
 
@@ -46,7 +47,7 @@ class GitConchSession(object):
         # requestHandler.handle(cmd)
         # raise Exception("no executing commands")
         if IInvocationRequestHandler.providedBy(self.user.requestHandler):
-            self.user.requestHandler.handle(self.user.requestHandler.SSHInvocationRequest(cmd, proto))
+            self.user.requestHandler.handle(self.user.requestHandler.SSHInvocationRequest(cmd, proto, self.user))
         else:
             raise Exception("requestHandler does not implement correct interface")
 
@@ -61,11 +62,12 @@ class GitConchSession(object):
     def closed(self):
         pass
 
-class GitConchUser(ConchUser):
+class GitConchUser(ConchUser, User):
 
     def __init__(self, username, requestHandler):
         avatar.ConchUser.__init__(self)
-        self.username = username
+        User.__init__(self, username)
+
         self.channelLookup.update({'session':session.SSHSession})
         self.requestHandler = requestHandler
 
