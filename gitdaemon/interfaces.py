@@ -33,7 +33,9 @@ class IInvocationRequestHandler(Interface):
     SSHInvocationRequest = Attribute("Implementation of IInvocationRequest for SSH protocol")
     HTTPInvocationRequest = Attribute("Implementation of IInvocationRequest for HTTP protocol")
 
-    RepositoryRouter = Attribute("Implementation of IRepositoryRouter")
+    RepositoryRouter = Attribute("Instantation of a implementation of IRepositoryRouter")
+
+    Authentication = Attribute("Instantation of a implementation of IAuthentication")
 
     def handle(self, request):
         """Handle a request through Git"""
@@ -43,13 +45,17 @@ class IRepositoryRouter(Interface):
     def route(self, repository):
         "Returns an absolute path to the repository"
 
-class IAuthorization(Interface):
+class IAuthentication(Interface):
 
     """The authentication logic"""
 
-    def authenticate(self, request):
+    def authenticateKey(self, key, credentials):
 
-        """Authenticate the current request, returns True of False"""
+        """Authentication based on keys"""
+
+    def authenticatePassword(self, user, password):
+
+        """Authentication based on username and password"""
 
 class GitError(Interface):
 

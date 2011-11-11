@@ -1,15 +1,23 @@
 import os
 import shlex
-import string
 from twisted.internet import reactor
-import sys
-from git import findGitShell, findGitHTTPBackend
-import interface
+from twisted.plugin import IPlugin
+from gitdaemon.git import findGitShell, findGitHTTPBackend
+from gitdaemon.interfaces import *
 from zope.interface import implements
-from config import config
+from gitdaemon.config import config
+
+class BaseAuthentication:
+    implements(IAuthentication)
+
+    def authenticateKey(self, key, credentials):
+        return True
+
+    def authenticatePassword(self, user, password):
+        return True
 
 class BaseSSHExecutionMechanism:
-    implements(interface.IExecutionMechanism)
+    implements(IExecutionMechanism)
 
     gitShell = findGitShell()
 
@@ -20,7 +28,7 @@ class BaseSSHExecutionMechanism:
         reactor.spawnProcess(proto, self.gitShell, (self.gitShell, '-c', command), env)
 
 class BaseHTTPExecutionMechanism:
-    implements(interface.IExecutionMechanism)
+    implements(IExecutionMechanism)
 
     gitHTTPBackend = findGitHTTPBackend()
     
@@ -43,7 +51,7 @@ class BaseHTTPExecutionMechanism:
 class BaseInvocationRequest:
 
     def __init__(self, proto):
-        if not interface.IExecutionMechanism.providedBy(self.executionMechanism):
+        if not IExecutionMechanism.providedBy(self.executionMechanism):
             raise Exception("Handle this")
 
         self.proto = proto
@@ -61,7 +69,7 @@ class BaseInvocationRequest:
         return self.command
 
 class BaseHTTPInvocationRequest(BaseInvocationRequest):
-    implements(interface.IInvocationRequest)
+    implements(IInvocationRequest)
 
     executionMechanism = BaseHTTPExecutionMechanism()
 
@@ -74,7 +82,7 @@ class BaseHTTPInvocationRequest(BaseInvocationRequest):
         self.command.request = self.command.prepath[-1:]
 
 class BaseSSHInvocationRequest(BaseInvocationRequest):
-    implements(interface.IInvocationRequest)
+    implements(IInvocationRequest)
 
     executionMechanism = BaseSSHExecutionMechanism()
 
@@ -87,7 +95,7 @@ class BaseSSHInvocationRequest(BaseInvocationRequest):
         self.command = argv[0]
 
 class BaseRepositoryRouter:
-    implements(interface.IRepositoryRouter)
+    implements(IRepositoryRouter)
 
     def route(self, repository):
         schemePath = config.get("GitDaemon", "repositoryBasePath")
@@ -102,23 +110,26 @@ class BaseRepositoryRouter:
         return path
 
 class BaseInvocationRequestHandler:
-    implements(interface.IInvocationRequestHandler)
+    implements(IPlugin, IInvocationRequestHandler)
 
     """The main invocation logic when handling a Git request"""
 
     HTTPInvocationRequest = BaseHTTPInvocationRequest
     SSHInvocationRequest = BaseSSHInvocationRequest
 
-    RepositoryRouter = BaseRepositoryRouter
+    RepositoryRouter = BaseRepositoryRouter()
 
-    def __init__(self):
-        self.repositoryRouter = self.RepositoryRouter()
+    Authentication = BaseAuthentication()
 
     def handle(self, request):
-        if not interface.IInvocationRequest.providedBy(request):
+        if not IInvocationRequest.providedBy(request):
             raise Exception("Handle this")
 
-        repository = self.repositoryRouter.route(request.getRepositoryPath())
+        repository = self.RepositoryRouter.route(request.getRepositoryPath())
 
-        if not repository == None:
+        if repository != None:
             request.getExecutionMechanism().execute(request.getProtocol(), request.getCommand(), repository)
+        else:
+            raise Exception("Not a valid repo")
+
+baseInvocationRequestHandler = BaseInvocationRequestHandler()

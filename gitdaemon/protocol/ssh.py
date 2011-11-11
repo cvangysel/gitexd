@@ -7,7 +7,7 @@ from twisted.internet import protocol
 from twisted.python import components
 from zope.interface.declarations import implements, providedBy
 import zope
-from interface import IInvocationRequestHandler
+from gitdaemon.interfaces import IInvocationRequestHandler
 
 publicKey = 'ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAGEArzJx8OYOnJmzf4tfBEvLi8DVPrJ3/c9k2I/Az64fxjHf9imyRJbixtQhlH9lfNjUIx+4LmrJH5QNRsFporcHDKOTwTTYLh5KmRpslkYHRivcJSkbh/C+BR3utDS555mV'
 
@@ -49,7 +49,6 @@ class GitConchSession(object):
             self.user.requestHandler.handle(self.user.requestHandler.SSHInvocationRequest(cmd, proto))
         else:
             raise Exception("requestHandler does not implement correct interface")
-
 
     def openShell(self, trans):
         protocol = ShellProtocol()

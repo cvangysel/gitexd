@@ -1,7 +1,7 @@
 from twisted.web.resource import Resource
 from twisted.web.server import Site, NOT_DONE_YET
 from twisted.web.twcgi import CGIScript, CGIProcessProtocol
-from interface import IInvocationRequestHandler
+from gitdaemon.interfaces import IInvocationRequestHandler
 
 class GitHTTP(CGIScript):
 
