@@ -1,18 +1,11 @@
 from zope.interface import Interface
 from zope.interface.interface import Attribute
 
-class IExecutionMechanism(Interface):
-
-    def execute(self, proto, command, repository):
-        """Executes shizzle"""
-
 class IInvocationRequest(Interface):
 
     """A request that came in through HTTP or SSH"""
 
-    executionMechanism = Attribute("Implementation of IExecutionMechanism")
-
-    def __init__(self, request, proto):
+    def __init__(self, request, proto, env = {}, args = []):
         """Handle it"""
         
     def getRepositoryPath(self):
@@ -21,20 +14,14 @@ class IInvocationRequest(Interface):
     def getProtocol(self):
         """Return the protocol the request originates from"""
 
-    def getCommand(self):
-        """Returns the command that needs to be executed"""
-
-    def getExecutionMechanism(self):
-        """Return an instance of the execution mechanism used by this kind of request"""
-
     def getUser(self):
         """Return the user that invocated the request"""
 
+    def invocate(self):
+        """Show time"""
+
 class IInvocationRequestHandler(Interface):
     """The main invocation logic when handling a Git request"""
-
-    SSHInvocationRequest = Attribute("Implementation of IInvocationRequest for SSH protocol")
-    HTTPInvocationRequest = Attribute("Implementation of IInvocationRequest for HTTP protocol")
 
     RepositoryRouter = Attribute("Instantation of a implementation of IRepositoryRouter")
 
@@ -42,6 +29,12 @@ class IInvocationRequestHandler(Interface):
 
     def handle(self, request, user):
         """Handle a request through Git"""
+
+    def createHTTPInvocationRequest(self, request, proto, user, env, qargs = {}):
+        """Create an instance of IInvocationRequest that handles HTTP requests."""
+
+    def createSSHInvocationRequest(self, request, proto, user):
+        """Create an instance of IInvocationRequest that handles SSH requests."""
 
 class IRepositoryRouter(Interface):
 
@@ -53,11 +46,9 @@ class IAuthentication(Interface):
     """The authentication logic"""
 
     def authenticateKey(self, key, credentials):
-
         """Authentication based on keys"""
 
     def authenticatePassword(self, user, password):
-
         """Authentication based on username and password"""
 
 class GitError(Interface):

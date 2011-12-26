@@ -4,6 +4,8 @@ from twisted.conch.interfaces import ISession
 from twisted.conch.ssh import factory, userauth, connection, keys, session
 from twisted.conch.ssh.factory import SSHFactory
 from twisted.internet import protocol
+from twisted.internet.interfaces import ITransport
+from twisted.internet.protocol import ProcessProtocol
 from twisted.python import components
 from zope.interface.declarations import implements, providedBy
 import zope
@@ -28,7 +30,7 @@ EhQ0wahUTCk1gKA4uPD6TMTChavbh4K63OvbKg==
 class ShellProtocol (protocol.Protocol):
 
     def connectionMade(self):
-        pass
+        assert ITransport.providedBy(self.transport)
 
         self.transport.write("Hi! I only accept SSH sessions through Git.\r\nSorry.\r\n")
         self.transport.loseConnection()
@@ -39,28 +41,44 @@ class GitConchSession(object):
     def __init__(self, user):
         self.user = user
 
+        assert self.invariant()
+
     def getPty(self, term, windowSize, attrs):
-        print "getPty"
         pass
 
     def execCommand(self, proto, cmd):
-        # requestHandler.handle(cmd)
-        # raise Exception("no executing commands")
-        if IInvocationRequestHandler.providedBy(self.user.requestHandler):
-            self.user.requestHandler.handle(self.user.requestHandler.SSHInvocationRequest(cmd, proto, self.user))
-        else:
-            raise Exception("requestHandler does not implement correct interface")
+        assert(isinstance(proto, ProcessProtocol))
+        assert(isinstance(cmd, str))
 
-    def openShell(self, trans):
+        assert self.invariant()
+
+        self.user.requestHandler.handle(self.user.requestHandler.createSSHInvocationRequest(cmd, proto, self.user))
+
+        assert proto.errConnectionLost() == 11
+
+        assert self.invariant()
+
+    def openShell(self, proto):
+        assert isinstance(proto, ProcessProtocol)
+
+        assert self.invariant()
+
         protocol = ShellProtocol()
-        protocol.makeConnection(trans)
-        trans.makeConnection(session.wrapProtocol(protocol))
+        protocol.makeConnection(proto)
+        proto.makeConnection(session.wrapProtocol(protocol))
+
+        assert proto.errConnectionLost() == 11
+
+        assert self.invariant()
 
     def eofReceived(self):
         pass
 
     def closed(self):
         pass
+
+    def invariant(self):
+        return IInvocationRequestHandler.providedBy(self.user.requestHandler)
 
 class GitConchUser(ConchUser, User):
 

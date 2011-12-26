@@ -3,14 +3,36 @@ from twisted.conch.ssh.keys import Key
 from twisted.cred.checkers import ICredentialsChecker
 from twisted.cred.credentials import ISSHPrivateKey, IUsernamePassword
 from twisted.cred.error import UnauthorizedLogin
-from twisted.internet import defer
+from twisted.internet import defer, reactor
+from twisted.internet.protocol import ProcessProtocol
 from twisted.python import log
 from twisted.python.failure import Failure
+
 from zope.interface import implements
+from gitdaemon.interfaces import IAuthentication
 
 class CredentialsChecker:
-     def __init__(self, authentication):
+
+    def __init__(self, authentication):
+        assert IAuthentication.providedBy(authentication)
+
         self.authentication = authentication
+
+    def errorHandler(self, fail, proto):
+        assert IAuthentication.providedBy(self.authentication)
+        assert isinstance(fail, Failure)
+        assert isinstance(proto, ProcessProtocol)
+
+        fail.trap(Failure)
+
+        message = fail.value
+
+        if proto.connectionMade():
+            proto.loseConnection()
+
+        #self.authentication.errorHandler(message, proto)
+
+        assert not proto.connectionMade()
 
 class PublicKeyChecker(CredentialsChecker):
     implements(ICredentialsChecker)
@@ -18,20 +40,28 @@ class PublicKeyChecker(CredentialsChecker):
     credentialInterfaces = ISSHPrivateKey,
 
     def verifySignature(self, credentials):
+        assert IAuthentication.providedBy(self.authentication)
+        assert ISSHPrivateKey.providedBy(credentials)
+
         key = Key.fromString(credentials.blob)
 
         if not credentials.signature:
-            return Failure(ValidPublicKey())
+            ret = Failure(ValidPublicKey())
         else:
             try:
                 if key.verify(credentials.signature, credentials.sigData):
-                    return key
+                    ret = key
             except:
                 log.err()
 
-                return Failure(UnauthorizedLogin("Key could not be verified"))
+                ret = Failure(UnauthorizedLogin("Key could not be verified"))
+
+        assert isinstance(ret, Failure) or ret == key
 
     def requestAvatarId(self, credentials):
+        assert IAuthentication.providedBy(self.authentication)
+        assert ISSHPrivateKey.providedBy(credentials)
+
         def authenticationCallback(result):
             if result:
                 return credentials.username
@@ -41,6 +71,9 @@ class PublicKeyChecker(CredentialsChecker):
         d = defer.maybeDeferred(self.verifySignature, credentials)
         d.addCallback(self.authentication.authenticateKey, credentials)
         d.addCallback(authenticationCallback)
+        d.addErrback(self.errorHandler)
+
+        assert isinstance(d, defer.Deferred)
 
         return d
 
@@ -50,6 +83,9 @@ class PasswordChecker(CredentialsChecker):
     credentialInterfaces = IUsernamePassword,
 
     def requestAvatarId(self, credentials):
+        assert IAuthentication.providedBy(self.authentication)
+        assert IUsernamePassword.providedBy(credentials)
+
         def authenticationCallback(result):
             if result:
                 return credentials.username
@@ -58,5 +94,8 @@ class PasswordChecker(CredentialsChecker):
 
         d = defer.maybeDeferred(self.authentication.authenticatePassword, credentials.username, credentials.password)
         d.addCallback(authenticationCallback)
+        d.addErrback(self.errorHandler)
+
+        assert isinstance(d, defer.Deferred)
 
         return d
