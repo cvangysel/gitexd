@@ -23,9 +23,8 @@ class IInvocationRequest(Interface):
 class IInvocationRequestHandler(Interface):
     """The main invocation logic when handling a Git request"""
 
-    RepositoryRouter = Attribute("Instantation of a implementation of IRepositoryRouter")
-
-    Authentication = Attribute("Instantation of a implementation of IAuthentication")
+    def attachRouter(self, router):
+        """Attach a repository router to the InvocationRequestHandler"""
 
     def handle(self, request, user):
         """Handle a request through Git"""
@@ -50,6 +49,10 @@ class IAuthentication(Interface):
 
     def authenticatePassword(self, user, password):
         """Authentication based on username and password"""
+
+class IErrorHandler(Interface):
+
+    """Not sure yet"""
 
 class GitError(Interface):
 

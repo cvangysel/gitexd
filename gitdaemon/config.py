@@ -1,4 +1,4 @@
-class Configuration:
+class Configuration(object):
 
     def get(self, scheme, property):
         return {

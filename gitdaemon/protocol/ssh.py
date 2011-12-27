@@ -54,7 +54,7 @@ class GitConchSession(object):
 
         self.user.requestHandler.handle(self.user.requestHandler.createSSHInvocationRequest(cmd, proto, self.user))
 
-        assert proto.errConnectionLost() == 11
+        assert proto.errConnectionLost() == None
 
         assert self.invariant()
 
