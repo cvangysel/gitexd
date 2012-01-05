@@ -1,9 +1,9 @@
 from twisted.conch.error import ValidPublicKey
 from twisted.conch.ssh.keys import Key
 from twisted.cred.checkers import ICredentialsChecker
-from twisted.cred.credentials import ISSHPrivateKey, IUsernamePassword
+from twisted.cred.credentials import ISSHPrivateKey, IUsernamePassword, IAnonymous
 from twisted.cred.error import UnauthorizedLogin
-from twisted.internet import defer, reactor
+from twisted.internet import defer
 from twisted.internet.protocol import ProcessProtocol
 from twisted.python import log
 from twisted.python.failure import Failure
@@ -30,6 +30,7 @@ class CredentialsChecker:
         if proto.connectionMade():
             proto.loseConnection()
 
+        # TODO This should be passed to ErrorHandler
         #self.authentication.errorHandler(message, proto)
 
         assert not proto.connectionMade()
@@ -95,6 +96,29 @@ class PasswordChecker(CredentialsChecker):
         d = defer.maybeDeferred(self.authentication.authenticatePassword, credentials.username, credentials.password)
         d.addCallback(authenticationCallback)
         d.addErrback(self.errorHandler)
+
+        assert isinstance(d, defer.Deferred)
+
+        return d
+
+class AnonymousChecker(CredentialsChecker):
+    implements(ICredentialsChecker)
+
+    credentialInterfaces = IAnonymous,
+
+    def requestAvatarId(self, credentials):
+        assert IAuthentication.providedBy(self.authentication)
+        assert IAnonymous.providedBy(credentials)
+
+        def authenticationCallback(result):
+            if result:
+                return "anonymous"
+            else:
+                return Failure(UnauthorizedLogin("anonymous"))
+
+        d = defer.maybeDeferred(self.authentication.allowAnonymousAccess)
+        d.addCallback(authenticationCallback)
+        #d.addErrback(self.errorHandler)
 
         assert isinstance(d, defer.Deferred)
 

@@ -1,6 +1,4 @@
 from twisted.web.http import Request
-from twisted.web.resource import Resource
-from twisted.web.server import Site, NOT_DONE_YET
 from twisted.web.twcgi import CGIScript, CGIProcessProtocol
 from gitdaemon.interfaces import IInvocationRequestHandler
 from gitdaemon.shared.user import User

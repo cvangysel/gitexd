@@ -23,9 +23,6 @@ class IInvocationRequest(Interface):
 class IInvocationRequestHandler(Interface):
     """The main invocation logic when handling a Git request"""
 
-    def attachRouter(self, router):
-        """Attach a repository router to the InvocationRequestHandler"""
-
     def handle(self, request, user):
         """Handle a request through Git"""
 
@@ -44,28 +41,22 @@ class IAuthentication(Interface):
 
     """The authentication logic"""
 
+    def allowAnonymousAccess(self):
+        """Whether or not anonymous access to the daemon is allowed"""
+
     def authenticateKey(self, key, credentials):
         """Authentication based on keys"""
 
     def authenticatePassword(self, user, password):
         """Authentication based on username and password"""
 
+class IAuthorization(Interface):
+
+    """The authorization logic"""
+
+    def mayAccess(self, user, repository, readOnly):
+        """Whether or not the user may access the repository"""
+
 class IErrorHandler(Interface):
 
     """Not sure yet"""
-
-class GitError(Interface):
-
-    """An error encapsulation for Git errors"""
-    
-    def invoke(self, request):
-
-        """When the error is thrown"""
-
-class GitRepository(Interface):
-
-    """Encapsulation for Git repositories, mainly focusses on routing to the repository"""
-
-    def __init__(self, repository):
-
-        """Initialize the repository object and route it to the correct directory"""

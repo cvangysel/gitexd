@@ -1,16 +1,20 @@
 import shlex
 from twisted.internet import reactor
+from twisted.internet.interfaces import IProcessProtocol
 from twisted.internet.protocol import ProcessProtocol
 from twisted.plugin import IPlugin
 from twisted.web.http import Request
 from gitdaemon.git import findGitShell, findGitHTTPBackend
 from zope.interface import implements
 from gitdaemon.interfaces import IInvocationRequest, IInvocationRequestHandler, IRepositoryRouter
+from gitdaemon.main import Application
+from gitdaemon.protocol.authorization import AuthorizedProcessProtocolWrapper
 from gitdaemon.shared.user import User
 
 class InvocationRequest(object):
 
     def __init__(self, proto, user, env = {}, args = []):
+        #self.proto = AuthorizedProcessProtocolWrapper(proto)
         self.proto = proto
         self.user = user
         self.env = env
@@ -35,7 +39,7 @@ class InvocationRequest(object):
         return self.user
 
     def invariant(self):
-        return  isinstance(self.proto, ProcessProtocol) and \
+        return  IProcessProtocol.providedBy(self.proto) and \
                 isinstance(self.user, User) and \
                 isinstance(self.repoPath, list) and \
                 isinstance(self.env, dict) and \
@@ -117,23 +121,20 @@ class InvocationRequestHandler(object):
 
     """The main invocation logic when handling a Git request"""
 
-    _repositoryRouter = None
-
-    def attachRouter(self, router):
-        assert self._repositoryRouter == None
-        assert IRepositoryRouter.providedBy(router)
-
-        self._repositoryRouter = router
-
     def handle(self, request):
-        assert IRepositoryRouter.providedBy(self._repositoryRouter)
+        assert IRepositoryRouter.providedBy(Application()._repositoryRouter)
         assert IInvocationRequest.providedBy(request)
 
-        repository = self._repositoryRouter.route(request.getRepositoryPath())
+        repository = Application().repositoryRouter().route(request.getRepositoryPath())
 
         if repository != None:
-            request.invocate(repository)
+            if Application().authorization().mayAccess(request.getUser(), repository, False):
+                request.invocate(repository)
+            else:
+                # TODO This should be passed through ErrorHandler instead of raising an exception
+                raise Exception("Authorization problemo's")
         else:
+            # TODO This should be passed through ErrorHandler instead of raising an exception
             raise Exception("Not a valid repo")
 
     def createHTTPInvocationRequest(self, request, proto, user, env, qargs = {}):

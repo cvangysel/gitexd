@@ -10,6 +10,7 @@ from twisted.python import components
 from zope.interface.declarations import implements, providedBy
 import zope
 from gitdaemon.interfaces import IInvocationRequestHandler
+from gitdaemon.shared import user
 from gitdaemon.shared.user import User
 
 publicKey = 'ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAGEArzJx8OYOnJmzf4tfBEvLi8DVPrJ3/c9k2I/Az64fxjHf9imyRJbixtQhlH9lfNjUIx+4LmrJH5QNRsFporcHDKOTwTTYLh5KmRpslkYHRivcJSkbh/C+BR3utDS555mV'
@@ -35,13 +36,17 @@ class ShellProtocol (protocol.Protocol):
         self.transport.write("Hi! I only accept SSH sessions through Git.\r\nSorry.\r\n")
         self.transport.loseConnection()
 
+        assert proto.errConnectionLost() == 11
+
 class GitConchSession(object):
     implements(ISession)
 
     def __init__(self, user):
+        assert isinstance(user, User)
+
         self.user = user
 
-        assert self.invariant()
+        assert self._invariant()
 
     def getPty(self, term, windowSize, attrs):
         pass
@@ -50,26 +55,27 @@ class GitConchSession(object):
         assert(isinstance(proto, ProcessProtocol))
         assert(isinstance(cmd, str))
 
-        assert self.invariant()
+        assert self._invariant()
 
         self.user.requestHandler.handle(self.user.requestHandler.createSSHInvocationRequest(cmd, proto, self.user))
 
         assert proto.errConnectionLost() == None
 
-        assert self.invariant()
+        assert self._invariant()
 
     def openShell(self, proto):
         assert isinstance(proto, ProcessProtocol)
 
-        assert self.invariant()
+        assert self._invariant()
 
+        # TODO This should be passed through ErrorHandler instead of handling it ourself
         protocol = ShellProtocol()
         protocol.makeConnection(proto)
         proto.makeConnection(session.wrapProtocol(protocol))
 
         assert proto.errConnectionLost() == 11
 
-        assert self.invariant()
+        assert self._invariant()
 
     def eofReceived(self):
         pass
@@ -77,8 +83,8 @@ class GitConchSession(object):
     def closed(self):
         pass
 
-    def invariant(self):
-        return IInvocationRequestHandler.providedBy(self.user.requestHandler)
+    def _invariant(self):
+        return isinstance(self.user, User)
 
 class GitConchUser(ConchUser, User):
 
