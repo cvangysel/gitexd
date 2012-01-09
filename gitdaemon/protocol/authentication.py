@@ -9,17 +9,15 @@ from twisted.python import log
 from twisted.python.failure import Failure
 
 from zope.interface import implements
-from gitdaemon.interfaces import IAuthentication
+import gitdaemon
 
-class CredentialsChecker:
+class CredentialsChecker(gitdaemon.Object):
 
-    def __init__(self, authentication):
-        assert IAuthentication.providedBy(authentication)
-
-        self.authentication = authentication
+    def __init__(self, app):
+        gitdaemon.Object.__init__(self, app)
 
     def errorHandler(self, fail, proto):
-        assert IAuthentication.providedBy(self.authentication)
+        self._invariant()
         assert isinstance(fail, Failure)
         assert isinstance(proto, ProcessProtocol)
 
@@ -41,7 +39,7 @@ class PublicKeyChecker(CredentialsChecker):
     credentialInterfaces = ISSHPrivateKey,
 
     def verifySignature(self, credentials):
-        assert IAuthentication.providedBy(self.authentication)
+        self._invariant()
         assert ISSHPrivateKey.providedBy(credentials)
 
         key = Key.fromString(credentials.blob)
@@ -60,7 +58,7 @@ class PublicKeyChecker(CredentialsChecker):
         assert isinstance(ret, Failure) or ret == key
 
     def requestAvatarId(self, credentials):
-        assert IAuthentication.providedBy(self.authentication)
+        self._invariant()
         assert ISSHPrivateKey.providedBy(credentials)
 
         def authenticationCallback(result):
@@ -70,7 +68,7 @@ class PublicKeyChecker(CredentialsChecker):
                 return Failure(UnauthorizedLogin(credentials.username))
 
         d = defer.maybeDeferred(self.verifySignature, credentials)
-        d.addCallback(self.authentication.authenticateKey, credentials)
+        d.addCallback(self.app.getAuth().authenticateKey, credentials)
         d.addCallback(authenticationCallback)
         d.addErrback(self.errorHandler)
 
@@ -84,7 +82,7 @@ class PasswordChecker(CredentialsChecker):
     credentialInterfaces = IUsernamePassword,
 
     def requestAvatarId(self, credentials):
-        assert IAuthentication.providedBy(self.authentication)
+        self._invariant()
         assert IUsernamePassword.providedBy(credentials)
 
         def authenticationCallback(result):
@@ -93,7 +91,7 @@ class PasswordChecker(CredentialsChecker):
             else:
                 return Failure(UnauthorizedLogin(credentials.username))
 
-        d = defer.maybeDeferred(self.authentication.authenticatePassword, credentials.username, credentials.password)
+        d = defer.maybeDeferred(self.app.getAuth().authenticatePassword, credentials.username, credentials.password)
         d.addCallback(authenticationCallback)
         d.addErrback(self.errorHandler)
 
@@ -107,7 +105,7 @@ class AnonymousChecker(CredentialsChecker):
     credentialInterfaces = IAnonymous,
 
     def requestAvatarId(self, credentials):
-        assert IAuthentication.providedBy(self.authentication)
+        self._invariant()
         assert IAnonymous.providedBy(credentials)
 
         def authenticationCallback(result):
@@ -116,7 +114,7 @@ class AnonymousChecker(CredentialsChecker):
             else:
                 return Failure(UnauthorizedLogin("anonymous"))
 
-        d = defer.maybeDeferred(self.authentication.allowAnonymousAccess)
+        d = defer.maybeDeferred(self.app.getAuth().allowAnonymousAccess)
         d.addCallback(authenticationCallback)
         #d.addErrback(self.errorHandler)
 

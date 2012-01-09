@@ -2,20 +2,21 @@ from twisted.conch.interfaces import IConchUser
 from twisted.cred import portal
 from twisted.web.resource import IResource
 from zope.interface.declarations import implements
+from gitdaemon import Object
 from gitdaemon.protocol.http import GitHTTP
 from gitdaemon.protocol.ssh import GitConchUser
 from gitdaemon.shared.user import User
 
-class Realm:
+class Realm(Object):
     implements(portal.IRealm)
 
-    def __init__(self, requestHandler):
-        self.requestHandler = requestHandler
+    def __init__(self, app):
+        Object.__init__(self, app)
 
     def requestAvatar(self, username, mind, *interfaces):
         if IConchUser in interfaces:
-            return IConchUser, GitConchUser(username, self.requestHandler), lambda: None
+            return IConchUser, GitConchUser(username, self.app.getRequestHandler()), lambda: None
         elif IResource in interfaces:
-            return IResource, GitHTTP(self.requestHandler, User(username)), lambda: None
+            return IResource, GitHTTP(self.app.getRequestHandler(), User(username)), lambda: None
         else:
             raise NotImplementedError()

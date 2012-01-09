@@ -1,9 +1,9 @@
 from twisted.plugin import IPlugin
 from zope.interface.declarations import implements
-from gitdaemon.interfaces import IAuthentication, IAuthorization
+from gitdaemon.interfaces import IAuth
 
-class Authentication(object):
-    implements(IPlugin, IAuthentication)
+class Auth(object):
+    implements(IPlugin, IAuth)
 
     def allowAnonymousAccess(self):
         print "allowAnon?"
@@ -15,11 +15,6 @@ class Authentication(object):
     def authenticatePassword(self, user, password):
         return True
 
-authentication = Authentication()
-
-class Authorization(object):
-    implements(IPlugin, IAuthorization)
-
     def mayAccess(self, user, repository, readOnly):
         """Whether or not the user may access the repository"""
 
@@ -27,4 +22,4 @@ class Authorization(object):
 
         return True
 
-authorization = Authorization()
+auth = Auth()

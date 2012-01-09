@@ -1,12 +1,15 @@
+from ConfigParser import ConfigParser
 import sys
 from twisted.internet import reactor
 from twisted.python import log
-from main import Application
+from gitdaemon import Application
 
 if __name__ == "__main__":
     log.startLogging(sys.stderr)
 
-    git = Application()
+    config = ConfigParser({'repositoryBasePath': '/home/christophe/Desktop/repositories'})
+
+    git = Application(config)
 
     ssh = git.createSSHFactory()
     http = git.createHTTPFactory()

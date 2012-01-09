@@ -1,7 +1,6 @@
 import os
 from twisted.plugin import IPlugin
 from zope.interface.declarations import implements
-from gitdaemon import config
 from gitdaemon.interfaces import IRepositoryRouter
 
 class RepositoryRouter(object):

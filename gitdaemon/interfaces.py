@@ -23,7 +23,7 @@ class IInvocationRequest(Interface):
 class IInvocationRequestHandler(Interface):
     """The main invocation logic when handling a Git request"""
 
-    def handle(self, request, user):
+    def handle(self, app, request):
         """Handle a request through Git"""
 
     def createHTTPInvocationRequest(self, request, proto, user, env, qargs = {}):
@@ -37,9 +37,9 @@ class IRepositoryRouter(Interface):
     def route(self, repository):
         "Returns an absolute path to the repository"
 
-class IAuthentication(Interface):
+class IAuth(Interface):
 
-    """The authentication logic"""
+    """The authentication and authorization logic"""
 
     def allowAnonymousAccess(self):
         """Whether or not anonymous access to the daemon is allowed"""
@@ -49,10 +49,6 @@ class IAuthentication(Interface):
 
     def authenticatePassword(self, user, password):
         """Authentication based on username and password"""
-
-class IAuthorization(Interface):
-
-    """The authorization logic"""
 
     def mayAccess(self, user, repository, readOnly):
         """Whether or not the user may access the repository"""
