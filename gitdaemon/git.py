@@ -123,6 +123,50 @@ class Repository(object):
         assert len(output) == 0
         assert self.isValidGitRepository()
 
+    def addFile(self, filename):
+        assert isinstance(filename, str) and len(filename) > 0
+        assert self.isValidGitRepository()
+        self._invariant()
+
+        output = self.executeCommand("add", [filename])
+
+        self._invariant()
+        assert len(output) == 0
+        assert self.isValidGitRepository()
+
+    def commit(self, message = "No commit message specified"):
+        assert isinstance(message, str) and len(message) > 0
+        assert self.isValidGitRepository()
+        self._invariant()
+
+        output = self.executeCommand("commit", ["-m", message])
+
+        self._invariant()
+        assert message in output
+        assert self.isValidGitRepository()
+
+    def createBranch(self, name):
+        assert isinstance(name, str) and len(name) > 0
+        assert self.isValidGitRepository()
+        self._invariant()
+
+        output = self.executeCommand("branch", [name])
+
+        self._invariant()
+        assert isinstance(output, str) and len(output) == 0
+        assert self.isValidGitRepository()
+
+    def switchBranch(self, name):
+        assert isinstance(name, str) and len(name) > 0
+        assert self.isValidGitRepository()
+        self._invariant()
+
+        output = self.executeCommand("checkout", [name])
+
+        self._invariant()
+        assert name in output
+        assert self.isValidGitRepository()
+
     def isValidGitRepository(self):
         self._invariant
 
