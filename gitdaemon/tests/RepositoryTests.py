@@ -1,7 +1,6 @@
 import random
 import shutil
 import tempfile
-from gitdaemon.git import Repository
 
 __author__ = 'christophe'
 
@@ -10,6 +9,8 @@ import unittest
 class GitTestHelper(unittest.TestCase):
 
     def setUp(self):
+        from gitdaemon.git import Repository
+
         self.path = tempfile.mkdtemp()
         self.repository = Repository(self.path)
 

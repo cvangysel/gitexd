@@ -67,10 +67,7 @@ class Repository(object):
 
         arguments = self.getGitCommand(command, arg)
 
-        try:
-            output = subprocess.check_output([self.pathToGit] + arguments, stderr=subprocess.STDOUT, cwd=self.path)
-        except subprocess.CalledProcessError:
-            return False
+        output = subprocess.check_output([self.pathToGit] + arguments, stderr=subprocess.STDOUT, cwd=self.path)
 
         print output
 
@@ -88,9 +85,9 @@ class Repository(object):
         self._invariant()
         assert self.isValidGitRepository()
 
-    def push(self, remote = "origin", branch = "origin"):
-        assert isintance(remote, str) and len(remote) > 0
-        assert isinstance(branch, str) and len(branch) > 0
+    def push(self, remote = "origin", branch = ""):
+        assert isinstance(remote, str) and len(remote) > 0
+        assert isinstance(branch, str)
         self._invariant()
         assert self.isValidGitRepository()
 
@@ -99,8 +96,8 @@ class Repository(object):
         self._invariant()
         assert self.isValidGitRepository()
 
-    def pull(self, remote = "origin", branch = "origin"):
-        assert isintance(remote, str) and len(remote) > 0
+    def pull(self, remote = "origin", branch = "master"):
+        assert isinstance(remote, str) and len(remote) > 0
         assert isinstance(branch, str) and len(branch) > 0
         assert self.isValidGitRepository()
         self._invariant()
