@@ -1,14 +1,13 @@
 import random
 import shutil
 import tempfile
-
-__author__ = 'christophe'
-
-import unittest
+from twisted.trial import unittest
 
 class GitTestHelper(unittest.TestCase):
 
     def setUp(self):
+        unittest.TestCase.setUp(self)
+
         from gitdaemon.git import Repository
 
         self.path = tempfile.mkdtemp()
@@ -78,3 +77,15 @@ class RepositoryTestCase(GitTestHelper):
 
         self.assertTrue("master" not in output)
         self.assertTrue("nothing to commit" in output)
+
+    def testCloneRepository(self):
+        self.repository.initialize()
+        self.generateComplicatedCommit()
+
+        from gitdaemon.git import Repository
+        path = tempfile.mkdtemp()
+        clonedRepository = Repository(path)
+
+        clonedRepository.clone(self.path)
+
+        shutil.rmtree(path)

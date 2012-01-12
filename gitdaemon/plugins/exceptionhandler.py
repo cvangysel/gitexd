@@ -1,9 +1,9 @@
 from twisted.plugin import IPlugin
 from zope.interface.declarations import implements
-from gitdaemon.interfaces import IErrorHandler
+from gitdaemon.interfaces import IExceptionHandler
 
 class ErrorHandler(object):
-    implements(IPlugin, IErrorHandler)
+    implements(IPlugin, IExceptionHandler)
 
     def invoke(self, e):
         """Handles a user-invoked exception"""
