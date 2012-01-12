@@ -1,15 +1,16 @@
 from ConfigParser import ConfigParser
 from twisted.internet import reactor
-import time
+from twisted.trial import unittest
 from gitdaemon import Application, interfaces
-
-__author__ = 'christophe'
-
-import unittest
+from gitdaemon.interfaces import IInvocationRequestHandler
+from gitdaemon.tests import plugins
+from gitdaemon.tests.plugins.requesthandlerstub import StubInvocationRequestHandler
 
 class ApplicationPluginTests(unittest.TestCase):
 
     def setUp(self):
+        unittest.TestCase.setUp(self)
+
         self.config = ConfigParser({'repositoryBasePath': ''})
 
     def testBasicPlugins(self):
@@ -17,23 +18,35 @@ class ApplicationPluginTests(unittest.TestCase):
 
         self.assertTrue(interfaces.IAuth.providedBy(app.getAuth()))
         self.assertTrue(interfaces.IInvocationRequestHandler.providedBy(app.getRequestHandler()))
-        self.assertTrue(interfaces.IErrorHandler.providedBy(app.getErrorHandler()))
+        self.assertTrue(interfaces.IExceptionHandler.providedBy(app.getErrorHandler()))
         self.assertTrue(interfaces.IRepositoryRouter.providedBy(app.getRepositoryRouter()))
 
     def testBasicExecution(self):
         app = Application(self.config)
 
-        def testCase(test, app):
-            time.sleep(.1)
-            reactor.stop()
+        ssh = reactor.listenTCP(2020, app.createSSHFactory())
+        http = reactor.listenTCP(8888, app.createHTTPFactory())
 
-            test.assertTrue(app._invariant)
+        self.assertTrue(app._invariant)
 
-        reactor.listenTCP(2020, app.createSSHFactory())
-        reactor.listenTCP(8888, app.createHTTPFactory())
+        ssh.stopListening()
+        http.stopListening()
 
-        reactor.callInThread(testCase, self, app)
-        reactor.run()
+    def testPluggedPlugins(self):
+        pluginPackages = {
+            IInvocationRequestHandler: plugins
+        }
+
+        app = Application(self.config, pluginPackages)
+
+        ssh = reactor.listenTCP(2020, app.createSSHFactory())
+        http = reactor.listenTCP(8888, app.createHTTPFactory())
+
+        self.assertTrue(app._invariant)
+        self.assertTrue(app.getRequestHandler(), StubInvocationRequestHandler)
+
+        ssh.stopListening()
+        http.stopListening()
 
 if __name__ == '__main__':
     unittest.main()
