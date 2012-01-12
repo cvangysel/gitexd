@@ -1,5 +1,7 @@
 from twisted.plugin import IPlugin, getPlugins
 # hack to clear cache
+from types import ModuleType
+
 list(getPlugins(IPlugin))
 
 class Object(object):
@@ -26,28 +28,14 @@ import plugins
 from protocol.ssh import GitSSH
 from shared.realm import Realm
 
-def loadPlugin(pluginInterface, name = "base"):
-    assert issubclass(pluginInterface, Interface)
-    assert isinstance(name, str) and len(name) > 0
-
-    plugin = None
-
-    pluginList = getPlugins(pluginInterface, plugins)
-
-    for plugin in pluginList:
-        if name == name:
-            break
-
-    assert plugin != None, pluginInterface
-
-    return plugin
-
 class Application(object):
 
-    def __init__(self, config):
+    def __init__(self, config, pluginPackages = {}):
         assert isinstance(config, ConfigParser)
+        assert isinstance(pluginPackages, dict)
 
         self._config = config;
+        self._pluginPackages = pluginPackages;
 
         self._loadPlugins()
 
@@ -97,20 +85,47 @@ class Application(object):
         return Site(HTTPAuthSessionWrapper(self._portal, [BasicCredentialFactory("GitDaemon")]))
 
     def _loadPlugins(self):
-        self._requestHandler = loadPlugin(interfaces.IInvocationRequestHandler)
-        self._auth = loadPlugin(interfaces.IAuth)
-        self._errorHandler = loadPlugin(interfaces.IErrorHandler)
-        self._repositoryRouter = loadPlugin(interfaces.IRepositoryRouter)
+
+        def loadPlugin(pluginInterface, pluginPackages = {}):
+            assert issubclass(pluginInterface, Interface)
+            assert isinstance(pluginPackages, dict)
+
+            plugin = None
+
+            if pluginPackages.has_key(pluginInterface) and isinstance(pluginPackages[pluginInterface], ModuleType):
+                pluginPackage = pluginPackages[pluginInterface]
+            else:
+                pluginPackage = plugins
+
+            pluginList = getPlugins(pluginInterface, pluginPackage)
+
+            for plugin in pluginList:
+                break
+
+            print pluginInterface
+
+            assert plugin != None
+            assert pluginInterface.providedBy(plugin)
+
+            print plugin
+
+            return plugin
+
+        self._requestHandler = loadPlugin(interfaces.IInvocationRequestHandler, self._pluginPackages)
+        self._auth = loadPlugin(interfaces.IAuth, self._pluginPackages)
+        self._errorHandler = loadPlugin(interfaces.IExceptionHandler, self._pluginPackages)
+        self._repositoryRouter = loadPlugin(interfaces.IRepositoryRouter, self._pluginPackages)
 
         assert interfaces.IInvocationRequestHandler.providedBy(self._requestHandler)
         assert interfaces.IAuth.providedBy(self._auth)
-        assert interfaces.IErrorHandler.providedBy(self._errorHandler)
+        assert interfaces.IExceptionHandler.providedBy(self._errorHandler)
         assert interfaces.IRepositoryRouter.providedBy(self._repositoryRouter)
 
     def _invariant(self):
+        assert isinstance(self._pluginPackages, dict)
         assert isinstance(self._config, ConfigParser)
         assert isinstance(self._portal, Portal)
         assert interfaces.IInvocationRequestHandler.providedBy(self._requestHandler)
         assert interfaces.IAuth.providedBy(self._auth)
-        assert interfaces.IErrorHandler.providedBy(self._errorHandler)
+        assert interfaces.IExceptionHandler.providedBy(self._errorHandler)
         assert interfaces.IRepositoryRouter.providedBy(self._repositoryRouter)
