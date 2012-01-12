@@ -15,8 +15,8 @@ class Realm(Object):
 
     def requestAvatar(self, username, mind, *interfaces):
         if IConchUser in interfaces:
-            return IConchUser, GitConchUser(username, self.app.getRequestHandler()), lambda: None
+            return IConchUser, GitConchUser(self.app, username), lambda: None
         elif IResource in interfaces:
-            return IResource, GitHTTP(self.app.getRequestHandler(), User(username)), lambda: None
+            return IResource, GitHTTP(self.app, User(username)), lambda: None
         else:
             raise NotImplementedError()

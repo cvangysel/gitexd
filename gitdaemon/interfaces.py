@@ -1,5 +1,4 @@
 from zope.interface import Interface
-from zope.interface.interface import Attribute
 
 class IInvocationRequest(Interface):
 
@@ -53,6 +52,22 @@ class IAuth(Interface):
     def mayAccess(self, user, repository, readOnly):
         """Whether or not the user may access the repository"""
 
-class IErrorHandler(Interface):
+class IExceptionHandler(Interface):
 
-    """Not sure yet"""
+    """Handles Exceptions of the IException class"""
+
+    def handle(self, exception):
+        """Handles exceptions"""
+
+class IException(Interface):
+
+    """Represents an exception that's passed to the ErrorHandler"""
+
+    def throw(self):
+        """Throws the exception; executes the normal behaviour"""
+
+    def getPriority(self):
+        """Returns the error priority (CRITICAL or NOTICE)"""
+
+    def getMessage(self):
+        """Returns a string indicating the exception."""

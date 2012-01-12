@@ -5,6 +5,7 @@ from twisted.internet.protocol import ProcessProtocol
 from twisted.plugin import IPlugin
 from twisted.web.http import Request
 from gitdaemon import Application
+from gitdaemon.error import UserException, GitUserException
 from gitdaemon.git import findGitShell, findGitHTTPBackend
 from zope.interface import implements
 from gitdaemon.interfaces import IInvocationRequest, IInvocationRequestHandler, IRepositoryRouter
@@ -40,7 +41,7 @@ class InvocationRequest(object):
 
     def _invariant(self):
         assert IProcessProtocol.providedBy(self.proto)
-        assert isinstance(self.user, User)
+        #assert isinstance(self.user, User)
         assert isinstance(self.repoPath, list)
         assert isinstance(self.env, dict)
         assert isinstance(self.args, list)
@@ -98,23 +99,23 @@ class SSHInvocationRequest(InvocationRequest):
 
         self.repoPath = argv[-1].split('/')
 
-        assert self._invariant()
+        self._invariant()
 
     def invocate(self, repository):
         assert isinstance(repository, str)
 
-        assert self._invariant()
+        self._invariant()
 
         env = {}
         command = self.command + ' ' + "'{0}'".format(repository)
 
         reactor.spawnProcess(self.proto, self.gitShell, (self.gitShell, '-c', command), env)
 
-        assert self._invariant()
+        self._invariant()
 
     def _invariant(self):
-        return  InvocationRequest._invariant(self) and \
-                isinstance(self.command, str)
+        InvocationRequest._invariant(self)
+        assert isinstance(self.command, str)
 
 class InvocationRequestHandler(object):
     implements(IPlugin, IInvocationRequestHandler)
@@ -127,20 +128,18 @@ class InvocationRequestHandler(object):
 
         repository = app.getRepositoryRouter().route(request.getRepositoryPath())
 
-        if repository != None:
+        if repository is not None:
             if app.getAuth().mayAccess(request.getUser(), repository, False):
                 request.invocate(repository)
             else:
-                # TODO This should be passed through ErrorHandler instead of raising an exception
-                raise Exception("Authorization problemo's")
+                app.getErrorHandler().handle(GitUserException("You don't have access to this repository.", True, request.getProtocol()))
         else:
-            # TODO This should be passed through ErrorHandler instead of raising an exception
-            raise Exception("Not a valid repo")
+            app.getErrorHandler().handle(GitUserException("The specified repository doesn't exist.", True, request.getProtocol()))
 
     def createHTTPInvocationRequest(self, request, proto, user, env, qargs = {}):
         assert(isinstance(request, Request))
         assert(isinstance(proto, ProcessProtocol))
-        assert(isinstance(user, User))
+        #assert(isinstance(user, User))
         assert(isinstance(env, dict))
         assert(isinstance(qargs, list) or isinstance(qargs, str))
 
@@ -153,7 +152,7 @@ class InvocationRequestHandler(object):
     def createSSHInvocationRequest(self, request, proto, user):
         assert(isinstance(request, str))
         assert(isinstance(proto, ProcessProtocol))
-        assert(isinstance(user, User))
+        #assert(isinstance(user, User))
 
         request = SSHInvocationRequest(request, proto, user)
 

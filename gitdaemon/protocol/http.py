@@ -1,42 +1,44 @@
 from twisted.web.http import Request
 from twisted.web.twcgi import CGIScript, CGIProcessProtocol
+from gitdaemon import Object
 from gitdaemon.interfaces import IInvocationRequestHandler
 from gitdaemon.shared.user import User
 
-class GitHTTP(CGIScript):
+class GitHTTP(CGIScript, Object):
 
     isLeaf = False
 
     children = ()
 
-    def __init__(self, requestHandler, user):
-        CGIScript.__init__(self, None)
-
-        self.requestHandler = requestHandler
+    def __init__(self, app, user):
         self.user = user
 
-        assert self.invariant()
+        Object.__init__(self, app)
+        CGIScript.__init__(self, None)
+
+        self._invariant()
 
     def getChild(self, name, request):
-        assert self.invariant()
+        self._invariant()
 
-        return GitHTTP(self.requestHandler, self.user)
+        return GitHTTP(self.app, self.user)
 
     def runProcess(self, env, request, qargs = []):
         assert(isinstance(request, Request))
         assert(isinstance(env, dict))
         assert(isinstance(qargs, list) or isinstance(qargs, str))
 
-        assert self.invariant()
+        self._invariant()
 
         proto = CGIProcessProtocol(request)
 
-        self.requestHandler.handle(self.requestHandler.createHTTPInvocationRequest(request, proto, self.user, env, qargs))
+        self.app.getRequestHandler().handle(self.app, self.app.getRequestHandler().createHTTPInvocationRequest(request, proto, self.user, env, qargs))
 
-        assert self.invariant()
+        self._invariant()
 
-    def invariant(self):
-        return IInvocationRequestHandler.providedBy(self.requestHandler) and \
-                isinstance(self.user, User) and\
-                not self.isLeaf and \
-                not self.children
+    def _invariant(self):
+        Object._invariant(self)
+
+        assert isinstance(self.user, User)
+        assert not self.isLeaf
+        assert not self.children

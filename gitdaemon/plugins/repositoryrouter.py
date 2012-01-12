@@ -10,6 +10,8 @@ class RepositoryRouter(object):
         schemePath = '/home/christophe/Desktop/repositories' #config.get("GitDaemon", "repositoryBasePath")
         path = os.path.join(schemePath, *repository)
 
+        print path
+
         if not os.path.exists(path):
             print "Repo " + path + " does not exist on disk"
 

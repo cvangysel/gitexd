@@ -1,17 +1,13 @@
 from twisted.conch import avatar
 from twisted.conch.avatar import ConchUser
 from twisted.conch.interfaces import ISession
-from twisted.conch.ssh import factory, userauth, connection, keys, session
+from twisted.conch.ssh import  userauth, connection, keys, session
 from twisted.conch.ssh.factory import SSHFactory
-from twisted.internet import protocol
-from twisted.internet.interfaces import ITransport
 from twisted.internet.protocol import ProcessProtocol
 from twisted.python import components
-from zope.interface.declarations import implements, providedBy
-import zope
-from gitdaemon.interfaces import IInvocationRequestHandler
-from gitdaemon.shared import user
-from gitdaemon.shared.user import User
+from zope.interface.declarations import implements
+from gitdaemon import Object
+from gitdaemon.error import UserException
 
 publicKey = 'ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAGEArzJx8OYOnJmzf4tfBEvLi8DVPrJ3/c9k2I/Az64fxjHf9imyRJbixtQhlH9lfNjUIx+4LmrJH5QNRsFporcHDKOTwTTYLh5KmRpslkYHRivcJSkbh/C+BR3utDS555mV'
 
@@ -28,72 +24,53 @@ pSTqy7c3a2AScC/YyOwkDaICHnnD3XyjMwIxALRzl0tQEKMXs6hH8ToUdlLROCrP
 EhQ0wahUTCk1gKA4uPD6TMTChavbh4K63OvbKg==
 -----END RSA PRIVATE KEY-----"""
 
-class ShellProtocol (protocol.Protocol):
-
-    def connectionMade(self):
-        assert ITransport.providedBy(self.transport)
-
-        self.transport.write("Hi! I only accept SSH sessions through Git.\r\nSorry.\r\n")
-        self.transport.loseConnection()
-
-        assert proto.errConnectionLost() == 11
-
 class GitConchSession(object):
     implements(ISession)
 
     def __init__(self, user):
-        assert isinstance(user, User)
+        assert isinstance(user, GitConchUser)
 
         self.user = user
 
-        assert self._invariant()
+        self._invariant()
 
     def getPty(self, term, windowSize, attrs):
-        pass
+        self._invariant()
 
     def execCommand(self, proto, cmd):
         assert(isinstance(proto, ProcessProtocol))
         assert(isinstance(cmd, str))
+        self._invariant()
 
-        assert self._invariant()
+        self.user.app.getRequestHandler().handle(self.user.app, self.user.app.getRequestHandler().createSSHInvocationRequest(cmd, proto, self.user))
 
-        self.user.getRequestHandler.handle(self.user.getRequestHandler.createSSHInvocationRequest(cmd, proto, self.user))
-
-        assert proto.errConnectionLost() == None
-
-        assert self._invariant()
+        assert proto.errConnectionLost() is None
+        self._invariant()
 
     def openShell(self, proto):
         assert isinstance(proto, ProcessProtocol)
+        self._invariant()
 
-        assert self._invariant()
+        self.user.app.getErrorHandler().handle(UserException("Hi!\nI can't open a shell for you at the moment. Sorry!\n\n", True, proto))
 
-        # TODO This should be passed through ErrorHandler instead of handling it ourself
-        protocol = ShellProtocol()
-        protocol.makeConnection(proto)
-        proto.makeConnection(session.wrapProtocol(protocol))
-
-        assert proto.errConnectionLost() == 11
-
-        assert self._invariant()
+        self._invariant()
 
     def eofReceived(self):
-        pass
+        self._invariant()
 
     def closed(self):
-        pass
+        self._invariant()
 
     def _invariant(self):
-        return isinstance(self.user, User)
+        assert isinstance(self.user, GitConchUser)
 
-class GitConchUser(ConchUser, User):
+class GitConchUser(ConchUser, Object):
 
-    def __init__(self, username, requestHandler):
+    def __init__(self, app, username):
         avatar.ConchUser.__init__(self)
-        User.__init__(self, username)
+        Object.__init__(self, app)
 
         self.channelLookup.update({'session':session.SSHSession})
-        self.requestHandler = requestHandler
 
 class GitSSH(SSHFactory):
 
@@ -110,5 +87,6 @@ class GitSSH(SSHFactory):
 
     def __init__(self, portal):
         self.portal = portal
-        
-        components.registerAdapter(GitConchSession, GitConchUser, ISession)
+
+        if components.getAdapterFactory(GitConchUser, ISession, None) == None:
+            components.registerAdapter(GitConchSession, GitConchUser, ISession)
