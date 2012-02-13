@@ -7,6 +7,9 @@ import gitdaemon
 application = Application("GitDaemon") # Create the application
 
 config = ConfigParser({'repositoryBasePath': '/home/christophe/Desktop/repositories'})
+config.add_section("Repository")
+config.set("Repository", 'repositoryBasePath',  '/home/christophe/Desktop/repositories')
+
 git = gitdaemon.Application(config)
 
 sshService = TCPServer(2222, git.createSSHFactory(), 50, '127.0.0.1')

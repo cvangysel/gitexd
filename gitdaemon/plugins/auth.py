@@ -5,6 +5,8 @@ from gitdaemon.interfaces import IAuth
 class Auth(object):
     implements(IPlugin, IAuth)
 
+    UserInterface = None
+
     def allowAnonymousAccess(self):
         print "allowAnon?"
         return False

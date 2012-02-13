@@ -2,7 +2,6 @@ from twisted.conch.ssh import session
 from twisted.internet import protocol
 from twisted.internet.interfaces import ITransport
 from twisted.internet.protocol import ProcessProtocol
-import twisted.internet.protocol
 from zope.interface.declarations import implements
 from gitdaemon.interfaces import IException
 
@@ -66,9 +65,9 @@ class ErrorProtocol (protocol.Protocol):
         self._loseConnection = loseConnection
 
     def connectionMade(self):
-        assert ITransport.providedBy(self.transport)
+        if ITransport.providedBy(self.transport):
 
-        self.transport.write(self._message)
+            self.transport.write(self._message)
 
-        if (self._loseConnection):
-            self.transport.loseConnection()
+            if (self._loseConnection):
+                self.transport.loseConnection()

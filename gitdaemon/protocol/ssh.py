@@ -1,5 +1,4 @@
 from twisted.conch import avatar
-from twisted.conch.avatar import ConchUser
 from twisted.conch.interfaces import ISession
 from twisted.conch.ssh import  userauth, connection, keys, session
 from twisted.conch.ssh.factory import SSHFactory
@@ -24,11 +23,11 @@ pSTqy7c3a2AScC/YyOwkDaICHnnD3XyjMwIxALRzl0tQEKMXs6hH8ToUdlLROCrP
 EhQ0wahUTCk1gKA4uPD6TMTChavbh4K63OvbKg==
 -----END RSA PRIVATE KEY-----"""
 
-class GitConchSession(object):
+class Session(object):
     implements(ISession)
 
     def __init__(self, user):
-        assert isinstance(user, GitConchUser)
+        assert isinstance(user, ConchUser)
 
         self.user = user
 
@@ -62,9 +61,9 @@ class GitConchSession(object):
         self._invariant()
 
     def _invariant(self):
-        assert isinstance(self.user, GitConchUser)
+        assert isinstance(self.user, ConchUser)
 
-class GitConchUser(ConchUser, Object):
+class ConchUser(avatar.ConchUser, Object):
 
     def __init__(self, app, username):
         avatar.ConchUser.__init__(self)
@@ -72,7 +71,7 @@ class GitConchUser(ConchUser, Object):
 
         self.channelLookup.update({'session':session.SSHSession})
 
-class GitSSH(SSHFactory):
+class Factory(SSHFactory):
 
     publicKeys = {
         'ssh-rsa': keys.Key.fromString(data=publicKey)
@@ -88,5 +87,5 @@ class GitSSH(SSHFactory):
     def __init__(self, portal):
         self.portal = portal
 
-        if components.getAdapterFactory(GitConchUser, ISession, None) == None:
-            components.registerAdapter(GitConchSession, GitConchUser, ISession)
+        if components.getAdapterFactory(ConchUser, ISession, None) == None:
+            components.registerAdapter(Session, ConchUser, ISession)

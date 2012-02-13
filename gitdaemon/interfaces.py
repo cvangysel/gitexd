@@ -1,4 +1,5 @@
 from zope.interface import Interface
+from zope.interface.interface import Attribute
 
 class IInvocationRequest(Interface):
 
@@ -37,6 +38,8 @@ class IRepositoryRouter(Interface):
         "Returns an absolute path to the repository"
 
 class IAuth(Interface):
+
+    UserInterface = Attribute("The interface the object representing a user session implements")
 
     """The authentication and authorization logic"""
 

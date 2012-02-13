@@ -1,9 +1,3 @@
-from twisted.plugin import IPlugin, getPlugins
-# hack to clear cache
-from types import ModuleType
-
-list(getPlugins(IPlugin))
-
 class Object(object):
 
     def __init__(self, app):
@@ -16,17 +10,19 @@ class Object(object):
     def _invariant(self):
         assert isinstance(self.app, Application)
 
+from twisted.plugin import IPlugin, getPlugins
+from types import ModuleType
+from gitdaemon.protocol.authentication import Realm
+
+list(getPlugins(IPlugin))
+
 from ConfigParser import ConfigParser
 from twisted.cred.portal import Portal
 from twisted.plugin import getPlugins
-from twisted.web._auth.basic import BasicCredentialFactory
-from twisted.web._auth.wrapper import HTTPAuthSessionWrapper
-from twisted.web.server import Site
 from zope.interface import Interface
+from gitdaemon.protocol import ssh, http
 import interfaces
 import plugins
-from protocol.ssh import GitSSH
-from shared.realm import Realm
 
 class Application(object):
 
@@ -76,13 +72,14 @@ class Application(object):
     def createSSHFactory(self):
         self._invariant()
 
-        return GitSSH(self._portal)
+        return ssh.Factory(self._portal)
 
     def createHTTPFactory(self):
         self._invariant()
 
         # TODO might want to use DigestCredentialFactory here
-        return Site(HTTPAuthSessionWrapper(self._portal, [BasicCredentialFactory("GitDaemon")]))
+        #return Site(HTTPAuthSessionWrapper(self._portal, [BasicCredentialFactory("GitDaemon")]))
+        return http.Factory(self._portal)
 
     def _loadPlugins(self):
 

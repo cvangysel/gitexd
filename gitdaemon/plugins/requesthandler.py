@@ -4,17 +4,19 @@ from twisted.internet.interfaces import IProcessProtocol
 from twisted.internet.protocol import ProcessProtocol
 from twisted.plugin import IPlugin
 from twisted.web.http import Request
+from zope.interface.interface import Interface
 from gitdaemon import Application
 from gitdaemon.error import UserException, GitUserException
 from gitdaemon.git import findGitShell, findGitHTTPBackend
 from zope.interface import implements
 from gitdaemon.interfaces import IInvocationRequest, IInvocationRequestHandler, IRepositoryRouter
 from gitdaemon.protocol.authorization import AuthorizedProcessProtocolWrapper
-from gitdaemon.shared.user import User
 
 class InvocationRequest(object):
 
     def __init__(self, proto, user, env = {}, args = []):
+        assert isinstance(proto, ProcessProtocol)
+
         #self.proto = AuthorizedProcessProtocolWrapper(proto)
         self.proto = proto
         self.user = user
@@ -41,7 +43,6 @@ class InvocationRequest(object):
 
     def _invariant(self):
         assert IProcessProtocol.providedBy(self.proto)
-        #assert isinstance(self.user, User)
         assert isinstance(self.repoPath, list)
         assert isinstance(self.env, dict)
         assert isinstance(self.args, list)
@@ -53,15 +54,10 @@ class HTTPInvocationRequest(InvocationRequest):
 
     def __init__(self, request, proto, user, env = {}, args = []):
         assert isinstance(request, Request)
-        assert isinstance(proto, ProcessProtocol)
-        assert isinstance(user, User)
 
         self.request = request
-
         InvocationRequest.__init__(self, proto, user, env, args);
-
         self.repoPath = request.prepath[:-1]
-
         self._invariant()
 
     def invocate(self, repository):
@@ -74,9 +70,6 @@ class HTTPInvocationRequest(InvocationRequest):
         self.env['PATH_INFO'] = "/" + "/".join(self.request.prepath[-1:])
         self.env['REMOTE_USER'] = 'christophe'
         self.env['GIT_HTTP_EXPORT_ALL'] = '1'
-
-        #print env['GIT_PROJECT_ROOT']
-        #print env['PATH_INFO']
 
         reactor.spawnProcess(self.proto, self.gitHTTPBackend, [self.gitHTTPBackend] + self.args, self.env)
 
@@ -94,11 +87,8 @@ class SSHInvocationRequest(InvocationRequest):
     def __init__(self, request, proto, user, env = {}, args = []):
         argv = shlex.split(request)
         self.command = argv[0]
-
         InvocationRequest.__init__(self, proto, user, env, args);
-
         self.repoPath = argv[-1].split('/')
-
         self._invariant()
 
     def invocate(self, repository):
