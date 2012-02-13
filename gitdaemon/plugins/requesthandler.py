@@ -126,7 +126,7 @@ class InvocationRequestHandler(object):
         assert isinstance(app, Application)
         assert IInvocationRequest.providedBy(request)
 
-        repository = app.getRepositoryRouter().route(request.getRepositoryPath())
+        repository = app.getRepositoryRouter().route(app, request.getRepositoryPath())
 
         if repository is not None:
             if app.getAuth().mayAccess(request.getUser(), repository, False):

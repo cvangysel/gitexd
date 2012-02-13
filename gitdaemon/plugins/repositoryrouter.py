@@ -1,22 +1,20 @@
 import os
 from twisted.plugin import IPlugin
 from zope.interface.declarations import implements
+from gitdaemon import Application
 from gitdaemon.interfaces import IRepositoryRouter
 
 class RepositoryRouter(object):
     implements(IPlugin, IRepositoryRouter)
 
-    def route(self, repository):
-        schemePath = '/home/christophe/Desktop/repositories' #config.get("GitDaemon", "repositoryBasePath")
+    def route(self, app, repository):
+        assert isinstance(app, Application)
+
+        schemePath = app.getConfig().get("Repository", "repositoryBasePath")
         path = os.path.join(schemePath, *repository)
 
-        print path
-
         if not os.path.exists(path):
-            print "Repo " + path + " does not exist on disk"
-
             return None
-            # Do protocol independent error stuff
 
         return path
 

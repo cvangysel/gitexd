@@ -1,6 +1,7 @@
 import random
 import shutil
 import tempfile
+from twisted.internet.interfaces import ITransport
 from twisted.trial import unittest
 
 class GitTestHelper(unittest.TestCase):
@@ -24,27 +25,30 @@ class GitTestHelper(unittest.TestCase):
 
         return string
 
-    def createRandomFile(self):
-        file = tempfile.NamedTemporaryFile(dir = self.path, delete = False)
+    def createRandomFile(self, path):
+        file = tempfile.NamedTemporaryFile(dir = path, delete = False)
         file.write(self.generateRandomString())
         file.close()
 
         return file.name
 
-    def generateComplicatedCommit(self):
-        assert self.repository.isValidGitRepository()
+    def generateComplicatedCommit(self, repository = None):
+        if repository is None:
+            repository = self.repository
 
-        self.repository.addFile(self.createRandomFile())
-        self.repository.addFile(self.createRandomFile())
+        assert repository.isValidGitRepository()
 
-        self.repository.commit()
+        repository.addFile(self.createRandomFile(repository.path))
+        repository.addFile(self.createRandomFile(repository.path))
 
-        self.repository.createBranch("second-branch")
-        self.repository.switchBranch("second-branch")
+        repository.commit()
 
-        self.repository.addFile(self.createRandomFile())
+        repository.createBranch("second-branch")
+        repository.switchBranch("second-branch")
 
-        self.repository.commit()
+        repository.addFile(self.createRandomFile(repository.path))
+
+        repository.commit()
 
     def tearDown(self):
         shutil.rmtree(self.path)
@@ -87,5 +91,19 @@ class RepositoryTestCase(GitTestHelper):
         clonedRepository = Repository(path)
 
         clonedRepository.clone(self.path)
+
+        shutil.rmtree(path)
+
+    def testEqual(self):
+        self.repository.initialize()
+        self.generateComplicatedCommit()
+
+        from gitdaemon.git import Repository
+        path = tempfile.mkdtemp()
+        clonedRepository = Repository(path)
+
+        clonedRepository.clone(self.path)
+
+        self.assertEqual(self.repository, clonedRepository)
 
         shutil.rmtree(path)

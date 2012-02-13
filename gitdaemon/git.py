@@ -35,6 +35,7 @@ class Repository(object):
         assert os.path.exists(path)
 
         self.path = path
+        self.bare = False
         
         self._invariant()
 
@@ -87,12 +88,19 @@ class Repository(object):
         self._invariant()
         assert self.isValidGitRepository()
 
-    def clone(self, url):
+    def clone(self, url, bare=False):
         self._invariant()
         assert not self.isValidGitRepository()
         assert isinstance(url, str)
+        assert isinstance(bare, bool)
 
-        self.executeCommand("clone", [url, "."])
+        arg = [url, "."]
+
+        if bare:
+            arg.append("--bare")
+            self.bare = True
+
+        self.executeCommand("clone", arg)
 
         self._invariant()
         assert self.isValidGitRepository()
@@ -184,8 +192,23 @@ class Repository(object):
     def isValidGitRepository(self):
         self._invariant
 
-        return os.path.exists(self.path + "/.git")
+        if self.bare:
+            return os.path.exists(self.path + "/HEAD")
+        else:
+            return os.path.exists(self.path + "/.git")
 
     def _invariant(self):
         assert isinstance(self.path, str)
         assert os.path.exists(self.pathToGit)
+        assert isinstance(self.bare, bool)
+
+    def __eq__(self, other):
+        assert self.isValidGitRepository()
+
+        assert isinstance(other, Repository)
+        assert other.isValidGitRepository()
+
+        selfLog = self.executeCommand("log", ["HEAD", "--pretty=oneline", "--all"]).split("\n")
+        otherLog = other.executeCommand("log", ["HEAD", "--pretty=oneline", "--all"]).split("\n")
+
+        return set(selfLog) == set(otherLog)

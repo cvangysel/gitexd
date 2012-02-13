@@ -33,7 +33,7 @@ class IInvocationRequestHandler(Interface):
 
 class IRepositoryRouter(Interface):
 
-    def route(self, repository):
+    def route(self, app, repository):
         "Returns an absolute path to the repository"
 
 class IAuth(Interface):
