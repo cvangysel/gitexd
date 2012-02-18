@@ -1,8 +1,14 @@
 import random
 import shutil
 import tempfile
+from twisted.internet import defer, reactor
 from twisted.internet.interfaces import ITransport
+from twisted.test.test_process import Accumulator
 from twisted.trial import unittest
+from gitdaemon.git import Repository
+
+def formatRemote(protocol, transport, repository):
+    return protocol + "://" + transport.getHost().host + ":" + str(transport.getHost().port) + "/" + repository
 
 class GitTestHelper(unittest.TestCase):
 
@@ -13,6 +19,8 @@ class GitTestHelper(unittest.TestCase):
 
         self.path = tempfile.mkdtemp()
         self.repository = Repository(self.path)
+
+        self.repoPath = tempfile.mkdtemp()
 
     def generateRandomString(self, n = 100):
         alphabet = "abcdefghijklmnopqrstuvwxyz"
@@ -50,8 +58,32 @@ class GitTestHelper(unittest.TestCase):
 
         repository.commit()
 
+    def pushRepository(self, repository):
+        p = GitProcess()
+        d = p.endedDeferred = defer.Deferred()
+        reactor.spawnProcess(p, repository.pathToGit, [repository.pathToGit, "push", "--all", "origin"], path=repository.path, usePTY=True)
+
+        return d
+
+    def pullRepository(self, repository):
+        p = GitProcess()
+        d = p.endedDeferred = defer.Deferred()
+        reactor.spawnProcess(p, self.repository.pathToGit, [self.repository.pathToGit, "pull", "origin", "master:master", "second-branch:second-branch"], path=self.repository.path, usePTY=True)
+
+        return d
+
+    def createTemporaryRepository(self, clone = None, bare = False):
+        path = tempfile.mkdtemp(dir=self.repoPath)
+        repository = Repository(path)
+
+        if clone != None:
+            repository.clone(self.repository.path, bare)
+
+        return repository
+
     def tearDown(self):
         shutil.rmtree(self.path)
+        shutil.rmtree(self.repoPath)
 
 class RepositoryTestCase(GitTestHelper):
 
@@ -107,3 +139,22 @@ class RepositoryTestCase(GitTestHelper):
         self.assertEqual(self.repository, clonedRepository)
 
         shutil.rmtree(path)
+
+
+class GitProcess(Accumulator):
+
+    def outReceived(self, d):
+        print "'" + d + "'"
+
+        if "Are you sure you want to continue connecting (yes/no)?" in d:
+            self.transport.write("yes\n")
+
+        Accumulator.outReceived(self, d)
+
+    def errReceived(self, d):
+        print d
+        Accumulator.errReceived(self, d)
+
+    def processEnded(self, reason):
+        print reason
+        Accumulator.processEnded(self, reason)

@@ -9,7 +9,6 @@ from gitdaemon.git import findGitShell, findGitHTTPBackend
 from zope.interface import implements
 from gitdaemon.interfaces import IInvocationRequest, IInvocationRequestHandler, IRepositoryRouter
 from gitdaemon.protocol.authorization import AuthorizedProcessProtocolWrapper
-from gitdaemon.shared.user import User
 
 class StubInvocationRequest(object):
     implements(IInvocationRequest)
