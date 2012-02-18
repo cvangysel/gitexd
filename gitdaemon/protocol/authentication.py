@@ -1,10 +1,11 @@
+from defer import Deferred
 from exceptions import NotImplementedError
 from twisted.conch.error import ValidPublicKey
 from twisted.conch.interfaces import IConchUser
 from twisted.conch.ssh.keys import Key
 from twisted.cred import portal
 from twisted.cred.checkers import ICredentialsChecker
-from twisted.cred.credentials import ISSHPrivateKey, IUsernamePassword, IAnonymous
+from twisted.cred.credentials import ISSHPrivateKey, IUsernamePassword, IAnonymous, ICredentials
 from twisted.cred.error import UnauthorizedLogin
 from twisted.internet import defer
 from twisted.internet.protocol import ProcessProtocol
@@ -23,6 +24,26 @@ class CredentialsChecker(gitdaemon.Object):
 
     def __init__(self, app):
         gitdaemon.Object.__init__(self, app)
+
+
+    def authenticationCallback(result, credentials):
+        assert ICredentials.providedBy(credentials)
+
+        if result != False or result != None:
+            return result
+        else:
+            return Failure(UnauthorizedLogin(credentials))
+
+    def authenticationCallback(self, d, credentials):
+        assert d is Deferred
+        assert ICredentials.providedBy(credentials)
+
+        d.addCallback(authenticationCallback, credentials)
+        d.addErrback(self.errorHandler, None)
+
+        assert isinstance(d, defer.Deferred)
+
+        return d
 
     def errorHandler(self, fail, proto):
         self._invariant()
@@ -69,18 +90,8 @@ class PublicKeyChecker(CredentialsChecker):
         self._invariant()
         assert ISSHPrivateKey.providedBy(credentials)
 
-        def authenticationCallback(result):
-            if result:
-                return result
-            else:
-                return Failure(UnauthorizedLogin(credentials.username))
-
         d = defer.maybeDeferred(self.verifySignature, credentials)
         d.addCallback(self.app.getAuth().authenticateKey, credentials)
-        d.addCallback(authenticationCallback)
-        d.addErrback(self.errorHandler, None)
-
-        assert isinstance(d, defer.Deferred)
 
         return d
 
@@ -93,15 +104,7 @@ class PasswordChecker(CredentialsChecker):
         self._invariant()
         assert IUsernamePassword.providedBy(credentials)
 
-        def authenticationCallback(result):
-            if result:
-                return result
-            else:
-                return Failure(UnauthorizedLogin(credentials.username))
-
         d = defer.maybeDeferred(self.app.getAuth().authenticatePassword, credentials.username, credentials.password)
-        d.addCallback(authenticationCallback)
-        d.addErrback(self.errorHandler, None)
 
         assert isinstance(d, defer.Deferred)
 
@@ -116,15 +119,7 @@ class AnonymousChecker(CredentialsChecker):
         self._invariant()
         assert IAnonymous.providedBy(credentials)
 
-        def authenticationCallback(result):
-            if result:
-                return result
-            else:
-                return Failure(UnauthorizedLogin("anonymous"))
-
         d = defer.maybeDeferred(self.app.getAuth().allowAnonymousAccess)
-        d.addCallback(authenticationCallback)
-        d.addErrback(self.errorHandler, None)
 
         assert isinstance(d, defer.Deferred)
 
