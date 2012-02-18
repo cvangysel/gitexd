@@ -25,7 +25,6 @@ class CredentialsChecker(gitdaemon.Object):
     def __init__(self, app):
         gitdaemon.Object.__init__(self, app)
 
-
     def authenticationCallback(result, credentials):
         assert ICredentials.providedBy(credentials)
 

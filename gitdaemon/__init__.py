@@ -72,14 +72,12 @@ class Application(object):
     def createSSHFactory(self):
         self._invariant()
 
-        return ssh.Factory(self._portal)
+        return ssh.Factory(self._portal, self._config)
 
     def createHTTPFactory(self):
         self._invariant()
 
-        # TODO might want to use DigestCredentialFactory here
-        #return Site(HTTPAuthSessionWrapper(self._portal, [BasicCredentialFactory("GitDaemon")]))
-        return http.Factory(self._portal)
+        return http.Factory(self._portal, self._config)
 
     def _loadPlugins(self):
 

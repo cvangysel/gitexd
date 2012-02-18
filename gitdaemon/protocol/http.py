@@ -9,7 +9,7 @@ from gitdaemon import Object
 
 class Factory(Site):
 
-    def __init__(self, portal):
+    def __init__(self, portal, config):
         # TODO might want to use DigestCredentialFactory here
         Site.__init__(self, HTTPAuthSessionWrapper(portal, [BasicCredentialFactory("GitDaemon")]))
 
