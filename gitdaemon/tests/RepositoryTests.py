@@ -72,8 +72,12 @@ class GitTestHelper(unittest.TestCase):
 
         return d
 
-    def createTemporaryRepository(self, clone = None, bare = False):
-        path = tempfile.mkdtemp(dir=self.repoPath)
+    def createTemporaryRepository(self, clone = None, bare = False, path = None):
+        if path == None:
+            path = tempfile.mkdtemp(dir=self.repoPath)
+        else:
+            path = tempfile.mkdtemp(dir=path)
+
         repository = Repository(path)
 
         if clone != None:

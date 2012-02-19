@@ -73,11 +73,11 @@ class Factory(SSHFactory):
 
         # TODO Place following logic in a try clause.
         self.privateKeys = {
-            'ssh-rsa': keys.Key.fromFile(config.get("SSH", "privateKeyLocation"))
+            'ssh-rsa': keys.Key.fromFile(config.get("DEFAULT", "privateKeyLocation"))
         }
 
         self.publicKeys = {
-            'ssh-rsa': keys.Key.fromFile(config.get("SSH", "publicKeyLocation"))
+            'ssh-rsa': keys.Key.fromFile(config.get("DEFAULT", "publicKeyLocation"))
         }
 
         if components.getAdapterFactory(ConchUser, ISession, None) == None:

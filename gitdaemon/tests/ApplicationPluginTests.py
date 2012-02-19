@@ -8,16 +8,13 @@ from gitdaemon.tests import plugins
 from gitdaemon.tests.plugins.requesthandlerstub import StubInvocationRequestHandler
 
 def _createDefaultConfigFile(repoPath = ''):
-    config = ConfigParser()
-
     keyPath = os.path.dirname(__file__) + "/example-key"
 
-    config.add_section("SSH")
-    config.set("SSH", "privateKeyLocation", keyPath + "/key")
-    config.set("SSH", "publicKeyLocation", keyPath + "/key.pub")
-
-    config.add_section("Repository")
-    config.set("Repository", 'repositoryBasePath', repoPath)
+    config = ConfigParser( {
+        "privateKeyLocation": keyPath + "/key",
+        "publicKeyLocation": keyPath + "/key.pub",
+        'repositoryPath': repoPath
+    })
 
     return config
 
