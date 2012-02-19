@@ -9,9 +9,10 @@ class RepositoryRouter(object):
 
     def route(self, app, repository):
         assert isinstance(app, Application)
+        assert isinstance(repository, list)
 
         # TODO Place following logic in a try clause.
-        schemePath = app.getConfig().get("Repository", "repositoryBasePath")
+        schemePath = app.getConfig().get("DEFAULT", "repositoryPath")
         path = os.path.join(schemePath, *repository)
 
         if not os.path.exists(path):
