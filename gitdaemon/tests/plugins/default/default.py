@@ -51,3 +51,44 @@ class StubInvocationRequestHandler(object):
         return request
 
 stubInvocationRequestHandler = StubInvocationRequestHandler()
+
+from twisted.cred.credentials import ISSHPrivateKey, IUsernamePassword
+from twisted.internet import defer
+from twisted.plugin import IPlugin
+from zope.interface.declarations import implements
+from zope.interface.interface import Interface
+from gitdaemon.interfaces import IAuth
+
+class IUserStub(Interface):
+    """Stub for User class"""
+
+class UserStub(object):
+    implements(IUserStub)
+
+class Auth(object):
+    implements(IPlugin, IAuth)
+
+    UserInterface = IUserStub
+
+    def allowAnonymousAccess(self):
+        return defer.succeed(UserStub())
+
+    def authenticateKey(self, credentials):
+        assert ISSHPrivateKey.providedBy(credentials)
+
+        return defer.succeed(UserStub())
+
+    def authenticatePassword(self, credentials):
+        assert IUsernamePassword.providedBy(credentials)
+
+        if credentials.username == "git":
+            return defer.succeed(UserStub())
+        else:
+            return None
+
+    def mayAccess(self, user, repository, readOnly):
+        """Whether or not the user may access the repository"""
+
+        return True
+
+auth = Auth()

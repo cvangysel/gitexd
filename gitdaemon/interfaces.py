@@ -46,10 +46,10 @@ class IAuth(Interface):
     def allowAnonymousAccess(self):
         """Whether or not anonymous access to the daemon is allowed"""
 
-    def authenticateKey(self, key, credentials):
+    def authenticateKey(self, credentials):
         """Authentication based on keys"""
 
-    def authenticatePassword(self, user, password):
+    def authenticatePassword(self, credentials):
         """Authentication based on username and password"""
 
     def mayAccess(self, user, repository, readOnly):

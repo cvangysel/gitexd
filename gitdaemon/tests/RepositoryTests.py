@@ -7,8 +7,18 @@ from twisted.test.test_process import Accumulator
 from twisted.trial import unittest
 from gitdaemon.git import Repository
 
-def formatRemote(protocol, transport, repository):
-    return protocol + "://" + transport.getHost().host + ":" + str(transport.getHost().port) + "/" + repository
+def formatRemote(protocol, transport, repository, username = None, password = None):
+    if username == None:
+        auth = ""
+    else:
+        auth = username
+
+        if password != None:
+            auth += ":" + password
+
+        auth += "@"
+
+    return protocol + "://" + auth + transport.getHost().host + ":" + str(transport.getHost().port) + "/" + repository
 
 class GitTestHelper(unittest.TestCase):
 
@@ -58,15 +68,15 @@ class GitTestHelper(unittest.TestCase):
 
         repository.commit()
 
-    def pushRepository(self, repository):
-        p = GitProcess()
+    def pushRepository(self, repository, password = None):
+        p = GitProcess(password)
         d = p.endedDeferred = defer.Deferred()
         reactor.spawnProcess(p, repository.pathToGit, [repository.pathToGit, "push", "--all", "origin"], path=repository.path, usePTY=True)
 
         return d
 
-    def pullRepository(self, repository):
-        p = GitProcess()
+    def pullRepository(self, repository, password = None):
+        p = GitProcess(password)
         d = p.endedDeferred = defer.Deferred()
         reactor.spawnProcess(p, self.repository.pathToGit, [self.repository.pathToGit, "pull", "origin", "master:master", "second-branch:second-branch"], path=self.repository.path, usePTY=True)
 
@@ -147,11 +157,20 @@ class RepositoryTestCase(GitTestHelper):
 
 class GitProcess(Accumulator):
 
+    def __init__(self, password):
+        self.password = password
+
     def outReceived(self, d):
-        print "'" + d + "'"
+        print "" + d + ""
 
         if "Are you sure you want to continue connecting (yes/no)?" in d:
             self.transport.write("yes\n")
+
+        if "assword:" in d:
+            if self.password != None:
+                self.transport.write(self.password + "\n")
+            else:
+                self.transport.write("\n")
 
         Accumulator.outReceived(self, d)
 

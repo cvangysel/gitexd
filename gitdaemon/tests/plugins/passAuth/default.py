@@ -1,28 +1,32 @@
-from twisted.cred.credentials import ISSHPrivateKey, IUsernamePassword
+from twisted.cred.credentials import IUsernamePassword, ISSHPrivateKey
 from twisted.internet import defer
 from twisted.plugin import IPlugin
 from zope.interface.declarations import implements
 from gitdaemon.interfaces import IAuth
+from gitdaemon.tests.plugins.default.default import UserStub, IUserStub
 
 class Auth(object):
     implements(IPlugin, IAuth)
 
-    """Trivial implementation of the auth plugin that doesn't check anything."""
-
-    UserInterface = None
+    UserInterface = IUserStub
 
     def allowAnonymousAccess(self):
-        return defer.succeed(True)
+        return defer.succeed(UserStub())
 
     def authenticateKey(self, credentials):
         assert ISSHPrivateKey.providedBy(credentials)
 
-        return defer.succeed(True)
+        return False
 
     def authenticatePassword(self, credentials):
         assert IUsernamePassword.providedBy(credentials)
 
-        return defer.succeed(True)
+        print credentials.password
+
+        if credentials.username == "pass" and credentials.password == "test_pass":
+            return defer.succeed(UserStub())
+        else:
+            return None
 
     def mayAccess(self, user, repository, readOnly):
         """Whether or not the user may access the repository"""

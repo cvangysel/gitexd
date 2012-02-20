@@ -25,26 +25,16 @@ class CredentialsChecker(gitdaemon.Object):
     def __init__(self, app):
         gitdaemon.Object.__init__(self, app)
 
-    def authenticationCallback(result, credentials):
+
+    def authCallback(self, result, credentials):
         assert ICredentials.providedBy(credentials)
 
-        if result != False or result != None:
-            return result
+        if result == False or result == None:
+            return Failure(UnauthorizedLogin())
         else:
-            return Failure(UnauthorizedLogin(credentials))
+            return result
 
-    def authenticationCallback(self, d, credentials):
-        assert d is Deferred
-        assert ICredentials.providedBy(credentials)
-
-        d.addCallback(authenticationCallback, credentials)
-        d.addErrback(self.errorHandler, None)
-
-        assert isinstance(d, defer.Deferred)
-
-        return d
-
-    def errorHandler(self, fail, proto):
+    def errorHandler(fail, proto):
         self._invariant()
         assert isinstance(fail, Failure)
         #assert isinstance(proto, ProcessProtocol)
@@ -66,31 +56,37 @@ class PublicKeyChecker(CredentialsChecker):
 
     credentialInterfaces = ISSHPrivateKey,
 
-    def verifySignature(self, credentials):
-        self._invariant()
-        assert ISSHPrivateKey.providedBy(credentials)
+    def authCallback(self, result, credentials):
 
-        key = Key.fromString(credentials.blob)
+        """Adapted from twisted.conch.checkers.SSHPublicKeyDatabase._cbRequestAvatarId"""
 
-        if not credentials.signature:
-            ret = Failure(ValidPublicKey())
+        assert ICredentials.providedBy(credentials)
+
+        if result == False or result == None:
+            return Failure(UnauthorizedLogin())
+        elif not credentials.signature:
+            return Failure(ValidPublicKey())
         else:
             try:
-                if key.verify(credentials.signature, credentials.sigData):
-                    ret = key
+                pubKey = Key.fromString(credentials.blob)
+
+                if pubKey.verify(credentials.signature, credentials.sigData):
+                    return result
             except:
                 log.err()
 
-                ret = Failure(UnauthorizedLogin("Key could not be verified"))
-
-        assert isinstance(ret, Failure) or ret == key
+            return Failure(UnauthorizedLogin())
 
     def requestAvatarId(self, credentials):
         self._invariant()
         assert ISSHPrivateKey.providedBy(credentials)
 
-        d = defer.maybeDeferred(self.verifySignature, credentials)
-        d.addCallback(self.app.getAuth().authenticateKey, credentials)
+        d = defer.maybeDeferred(self.app.getAuth().authenticateKey, credentials)
+        d.addCallback(self.authCallback, credentials)
+
+        # TODO Add error handler here
+
+        assert isinstance(d, defer.Deferred)
 
         return d
 
@@ -103,7 +99,10 @@ class PasswordChecker(CredentialsChecker):
         self._invariant()
         assert IUsernamePassword.providedBy(credentials)
 
-        d = defer.maybeDeferred(self.app.getAuth().authenticatePassword, credentials.username, credentials.password)
+        d = defer.maybeDeferred(self.app.getAuth().authenticatePassword, credentials)
+        d.addCallback(self.authCallback, credentials)
+
+        # TODO Add error handler here
 
         assert isinstance(d, defer.Deferred)
 

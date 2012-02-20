@@ -5,7 +5,7 @@ from twisted.trial import unittest
 from gitdaemon import Application, interfaces
 from gitdaemon.interfaces import IInvocationRequestHandler
 from gitdaemon.tests import plugins
-from gitdaemon.tests.plugins.requesthandlerstub import StubInvocationRequestHandler
+from gitdaemon.tests.plugins.default.default import StubInvocationRequestHandler
 
 def _createDefaultConfigFile(repoPath = ''):
     keyPath = os.path.dirname(__file__) + "/example-key"
@@ -46,7 +46,7 @@ class ApplicationPluginTests(unittest.TestCase):
 
     def testPluggedPlugins(self):
         pluginPackages = {
-            IInvocationRequestHandler: plugins
+            IInvocationRequestHandler: plugins.default
         }
 
         app = Application(self.config, pluginPackages)
