@@ -11,15 +11,15 @@ class Auth(object):
 
     UserInterface = None
 
-    def allowAnonymousAccess(self):
+    def allowAnonymousAccess(self, app):
         return defer.succeed(True)
 
-    def authenticateKey(self, credentials):
+    def authenticateKey(self, app, credentials):
         assert ISSHPrivateKey.providedBy(credentials)
 
         return defer.succeed(True)
 
-    def authenticatePassword(self, credentials):
+    def authenticatePassword(self, app, credentials):
         assert IUsernamePassword.providedBy(credentials)
 
         return defer.succeed(True)

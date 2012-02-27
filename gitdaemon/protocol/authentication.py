@@ -25,7 +25,6 @@ class CredentialsChecker(gitdaemon.Object):
     def __init__(self, app):
         gitdaemon.Object.__init__(self, app)
 
-
     def authCallback(self, result, credentials):
         assert ICredentials.providedBy(credentials)
 
@@ -81,7 +80,7 @@ class PublicKeyChecker(CredentialsChecker):
         self._invariant()
         assert ISSHPrivateKey.providedBy(credentials)
 
-        d = defer.maybeDeferred(self.app.getAuth().authenticateKey, credentials)
+        d = defer.maybeDeferred(self.app.getAuth().authenticateKey, self.app, credentials)
         d.addCallback(self.authCallback, credentials)
 
         # TODO Add error handler here
@@ -99,7 +98,7 @@ class PasswordChecker(CredentialsChecker):
         self._invariant()
         assert IUsernamePassword.providedBy(credentials)
 
-        d = defer.maybeDeferred(self.app.getAuth().authenticatePassword, credentials)
+        d = defer.maybeDeferred(self.app.getAuth().authenticatePassword, self.app, credentials)
         d.addCallback(self.authCallback, credentials)
 
         # TODO Add error handler here
@@ -117,7 +116,7 @@ class AnonymousChecker(CredentialsChecker):
         self._invariant()
         assert IAnonymous.providedBy(credentials)
 
-        d = defer.maybeDeferred(self.app.getAuth().allowAnonymousAccess)
+        d = defer.maybeDeferred(self.app.getAuth().allowAnonymousAccess, self.app)
 
         assert isinstance(d, defer.Deferred)
 

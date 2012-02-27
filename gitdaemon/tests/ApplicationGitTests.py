@@ -1,9 +1,9 @@
 from twisted.internet import reactor
 from twisted.trial import unittest
 from gitdaemon import Application
+from gitdaemon.tests import plugins
 from gitdaemon.tests.ApplicationPluginTests import _createDefaultConfigFile
 from gitdaemon.tests.RepositoryTests import GitTestHelper, formatRemote
-from gitdaemon.tests import plugins
 from gitdaemon.interfaces import IAuth
 
 __author__ = 'christophe'
@@ -53,7 +53,7 @@ class ApplicationGitTests(ApplicationTest):
         def processEnded(result):
             self.assertEqual(self.repository, remoteRepository)
 
-        return self.pushRepository(self.repository).addCallback(processEnded)
+        return self.pushRepository(self.repository, "derp").addCallback(processEnded)
 
     def testHTTPPush(self):
         self.repository.initialize()

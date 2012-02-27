@@ -7,14 +7,14 @@ from gitdaemon.interfaces import IInvocationRequestHandler
 from gitdaemon.tests import plugins
 from gitdaemon.tests.plugins.default.default import StubInvocationRequestHandler
 
-def _createDefaultConfigFile(repoPath = ''):
+def _createDefaultConfigFile(repoPath = '', defaults = {}):
     keyPath = os.path.dirname(__file__) + "/example-key"
 
-    config = ConfigParser( {
+    config = ConfigParser(dict({
         "privateKeyLocation": keyPath + "/key",
         "publicKeyLocation": keyPath + "/key.pub",
         'repositoryPath': repoPath
-    })
+    }.items() + defaults.items()))
 
     return config
 

@@ -43,13 +43,13 @@ class IAuth(Interface):
 
     """The authentication and authorization logic"""
 
-    def allowAnonymousAccess(self):
+    def allowAnonymousAccess(self, app):
         """Whether or not anonymous access to the daemon is allowed"""
 
-    def authenticateKey(self, credentials):
+    def authenticateKey(self, app, credentials):
         """Authentication based on keys"""
 
-    def authenticatePassword(self, credentials):
+    def authenticatePassword(self, app, credentials):
         """Authentication based on username and password"""
 
     def mayAccess(self, user, repository, readOnly):
