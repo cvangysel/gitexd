@@ -208,7 +208,17 @@ class Repository(object):
         assert isinstance(other, Repository)
         assert other.isValidGitRepository()
 
-        selfLog = self.executeCommand("log", ["HEAD", "--pretty=oneline", "--all"]).split("\n")
-        otherLog = other.executeCommand("log", ["HEAD", "--pretty=oneline", "--all"]).split("\n")
+        try:
+            selfLog = self.executeCommand("log", ["HEAD", "--pretty=oneline", "--all"]).split("\n")
+        except subprocess.CalledProcessError:
+            selfLog = ""
+
+        try:
+            otherLog = other.executeCommand("log", ["HEAD", "--pretty=oneline", "--all"]).split("\n")
+        except subprocess.CalledProcessError:
+            otherLog = ""
 
         return set(selfLog) == set(otherLog)
+
+    def __ne__(self, other):
+        return not self.__eq__(other)

@@ -1,3 +1,4 @@
+import os
 import random
 import shutil
 import tempfile
@@ -68,17 +69,30 @@ class GitTestHelper(unittest.TestCase):
 
         repository.commit()
 
-    def pushRepository(self, repository, password = None):
+    def _getEnvironmentVars(self, keyFile):
+        if keyFile != None:
+            sshWrapper = os.path.dirname(__file__) + "/example-key/sshWrapper.sh"
+
+            print "Using", sshWrapper, " as SSH utility"
+
+            return {
+                "GIT_SSH": sshWrapper,
+                "GIT_SSH_KEY": keyFile
+            }
+
+        return {}
+
+    def pushRepository(self, repository, password = None, keyFile = None):
         p = GitProcess(password)
         d = p.endedDeferred = defer.Deferred()
-        reactor.spawnProcess(p, repository.pathToGit, [repository.pathToGit, "push", "--all", "origin"], path=repository.path, usePTY=True)
+        reactor.spawnProcess(p, repository.pathToGit, [repository.pathToGit, "push", "--all", "origin"], path=repository.path, usePTY=True, env=self._getEnvironmentVars(keyFile))
 
         return d
 
-    def pullRepository(self, repository, password = None):
+    def pullRepository(self, repository, password = None, keyFile = None):
         p = GitProcess(password)
         d = p.endedDeferred = defer.Deferred()
-        reactor.spawnProcess(p, self.repository.pathToGit, [self.repository.pathToGit, "pull", "origin", "master:master", "second-branch:second-branch"], path=self.repository.path, usePTY=True)
+        reactor.spawnProcess(p, self.repository.pathToGit, [self.repository.pathToGit, "pull", "origin", "master:master", "second-branch:second-branch"], path=self.repository.path, usePTY=True, env=self._getEnvironmentVars(keyFile))
 
         return d
 
@@ -171,6 +185,9 @@ class GitProcess(Accumulator):
                 self.transport.write(self.password + "\n")
             else:
                 self.transport.write("\n")
+
+        if "Username:" in d:
+            self.transport.write("\n")
 
         Accumulator.outReceived(self, d)
 
