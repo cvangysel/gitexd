@@ -41,6 +41,8 @@ class CredentialsChecker(gitdaemon.Object):
         if fail.type == UnauthorizedLogin:
             """"""
             # TODO This should be passed to ErrorHandler
+
+            fail.trap(Failure)
         elif fail.type == ValidPublicKey:
             fail.trap(Failure)
         else:
@@ -49,10 +51,10 @@ class CredentialsChecker(gitdaemon.Object):
             fail.printTraceback()
             reactor.stop()
 
-        if proto.connectionMade():
+        """if proto.connectionMade():
             proto.loseConnection()
 
-        assert not proto.connectionMade()
+        assert not proto.connectionMade()"""
 
 class PublicKeyChecker(CredentialsChecker):
     implements(ICredentialsChecker)
