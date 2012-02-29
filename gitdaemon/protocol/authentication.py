@@ -28,6 +28,8 @@ class CredentialsChecker(gitdaemon.Object):
     def authCallback(self, result, credentials):
         assert ICredentials.providedBy(credentials)
 
+        print "DefaultAuthCallback", result, credentials
+
         if result == False or result == None:
             return Failure(UnauthorizedLogin())
         else:
@@ -61,6 +63,8 @@ class PublicKeyChecker(CredentialsChecker):
 
         assert ICredentials.providedBy(credentials)
 
+        print "SSHAuthCallback"
+
         if result == False or result == None:
             return Failure(UnauthorizedLogin())
         elif not credentials.signature:
@@ -82,6 +86,8 @@ class PublicKeyChecker(CredentialsChecker):
 
         d = defer.maybeDeferred(self.app.getAuth().authenticateKey, self.app, credentials)
         d.addCallback(self.authCallback, credentials)
+
+        print "SSHRequestAvatarId"
 
         # TODO Add error handler here
 
@@ -117,6 +123,7 @@ class AnonymousChecker(CredentialsChecker):
         assert IAnonymous.providedBy(credentials)
 
         d = defer.maybeDeferred(self.app.getAuth().allowAnonymousAccess, self.app)
+        d.addCallback(self.authCallback, credentials)
 
         assert isinstance(d, defer.Deferred)
 
