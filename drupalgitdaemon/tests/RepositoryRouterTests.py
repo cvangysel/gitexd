@@ -15,7 +15,7 @@ class RepositoryRouterTests(GitTestHelper):
     def setUp(self):
         GitTestHelper.setUp(self)
 
-        self.config = self.config = _createDefaultConfigFile(self.repoPath)
+        self.config = _createDefaultConfigFile(self.repoPath)
 
         pluginPackages = {
             IRepositoryRouter: plugins
