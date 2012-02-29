@@ -7,10 +7,11 @@ from twisted.cred import portal
 from twisted.cred.checkers import ICredentialsChecker
 from twisted.cred.credentials import ISSHPrivateKey, IUsernamePassword, IAnonymous, ICredentials
 from twisted.cred.error import UnauthorizedLogin
-from twisted.internet import defer
+from twisted.internet import defer, reactor
 from twisted.internet.protocol import ProcessProtocol
 from twisted.python import log
 from twisted.python.failure import Failure
+from twisted.python.log import err
 from twisted.web.resource import IResource
 
 import gitdaemon
@@ -28,27 +29,28 @@ class CredentialsChecker(gitdaemon.Object):
     def authCallback(self, result, credentials):
         assert ICredentials.providedBy(credentials)
 
-        print "DefaultAuthCallback", result, credentials
-
         if result == False or result == None:
             return Failure(UnauthorizedLogin())
         else:
             return result
 
-    def errorHandler(fail, proto):
+    def errorHandler(self, fail):
         self._invariant()
         assert isinstance(fail, Failure)
-        #assert isinstance(proto, ProcessProtocol)
 
-        fail.trap(Failure)
+        if fail.type == UnauthorizedLogin:
+            """"""
+            # TODO This should be passed to ErrorHandler
+        elif fail.type == ValidPublicKey:
+            fail.trap(Failure)
+        else:
+            # Unknown error, stop execution
 
-        message = fail.value
+            fail.printTraceback()
+            reactor.stop()
 
         if proto.connectionMade():
             proto.loseConnection()
-
-        # TODO This should be passed to ErrorHandler
-        #self.authentication.errorHandler(message, proto)
 
         assert not proto.connectionMade()
 
@@ -62,8 +64,6 @@ class PublicKeyChecker(CredentialsChecker):
         """Adapted from twisted.conch.checkers.SSHPublicKeyDatabase._cbRequestAvatarId"""
 
         assert ICredentials.providedBy(credentials)
-
-        print "SSHAuthCallback"
 
         if result == False or result == None:
             return Failure(UnauthorizedLogin())
@@ -87,9 +87,7 @@ class PublicKeyChecker(CredentialsChecker):
         d = defer.maybeDeferred(self.app.getAuth().authenticateKey, self.app, credentials)
         d.addCallback(self.authCallback, credentials)
 
-        print "SSHRequestAvatarId"
-
-        # TODO Add error handler here
+        d.addErrback(self.errorHandler)
 
         assert isinstance(d, defer.Deferred)
 
@@ -107,7 +105,7 @@ class PasswordChecker(CredentialsChecker):
         d = defer.maybeDeferred(self.app.getAuth().authenticatePassword, self.app, credentials)
         d.addCallback(self.authCallback, credentials)
 
-        # TODO Add error handler here
+        d.addErrback(self.errorHandler)
 
         assert isinstance(d, defer.Deferred)
 
@@ -125,10 +123,11 @@ class AnonymousChecker(CredentialsChecker):
         d = defer.maybeDeferred(self.app.getAuth().allowAnonymousAccess, self.app)
         d.addCallback(self.authCallback, credentials)
 
+        d.addErrback(self.errorHandler)
+
         assert isinstance(d, defer.Deferred)
 
         return d
-
 
 class Realm(gitdaemon.Object):
     implements(portal.IRealm)
