@@ -1,0 +1,23 @@
+from twisted.plugin import IPlugin
+from zope.interface.declarations import implements
+from drupalgitdaemon.tests.plugins.authorization import auth
+from gitdaemon.interfaces import IAuth
+
+"""
+    The following class copies the exact same behavior of DrupalAuth,
+    the only difference is that it uses the DummyServiceProtocol.
+"""
+
+class DrupalTestAuth(auth.DrupalTestAuth):
+    implements(IPlugin, IAuth)
+
+    def mayAccess(self, user, repository, readOnly):
+        """
+                    Whether or not the user may access the repository
+
+                    This should always return True in the case of Authentication tests.
+              """
+
+        return True
+
+auth = DrupalTestAuth()

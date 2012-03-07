@@ -68,11 +68,7 @@ class Repository(object):
 
         arguments = self.getGitCommand(command, arg)
 
-        print [self.pathToGit] + arguments
-
         output = subprocess.check_output([self.pathToGit] + arguments, stderr=subprocess.STDOUT, cwd=self.path)
-
-        print output
 
         assert isinstance(output, str)
         self._invariant()
@@ -116,7 +112,7 @@ class Repository(object):
         else:
             arg = [remote]
 
-        print self.executeCommand("push", arg)
+        self.executeCommand("push", arg)
 
         self._invariant()
         assert self.isValidGitRepository()

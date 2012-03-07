@@ -1,16 +1,13 @@
-import os
-import shutil
-import tempfile
 from twisted.internet import reactor
 from twisted.trial import unittest
-from drupalgitdaemon import plugins, tests
-from drupalgitdaemon.tests.plugins.auth import DrupalTestAuth
+from drupalgitdaemon import plugins
+from drupalgitdaemon.tests.plugins import authentication
+from drupalgitdaemon.tests.plugins.authentication.auth import DrupalTestAuth
 from gitdaemon import Application
-import gitdaemon
-from gitdaemon.interfaces import IRepositoryRouter, IAuth
-from gitdaemon.tests.ApplicationGitTests import ApplicationTest
-from gitdaemon.tests.ApplicationPluginTests import _createDefaultConfigFile
-from gitdaemon.tests.RepositoryTests import GitTestHelper, formatRemote
+from gitdaemon.interfaces import  IAuth
+from gitdaemon.tests.test_daemonWorkflow import ApplicationTest
+from gitdaemon.tests.test_subsystemPlugins import _createDefaultConfigFile
+from gitdaemon.tests.test_repositoryEncapsulation import GitTestHelper, formatRemote
 
 __author__ = 'christophe'
 
@@ -25,7 +22,7 @@ def _createDrupalAuthConfigFile(repoPath = '', allowAnon = False):
 class AuthenticationTests(ApplicationTest):
 
     pluginPackages = {
-        IAuth: tests.plugins
+        IAuth: authentication
     }
 
     def _testHTTP(self, user = None):
@@ -164,7 +161,7 @@ class PasswordAuthenticationTests(AuthenticationTests):
 class KeyAuthenticationTests(AuthenticationTests):
 
     pluginPackages = {
-        IAuth: tests.plugins
+        IAuth: authentication
     }
 
     def testInitialization(self):

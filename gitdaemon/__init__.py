@@ -97,12 +97,8 @@ class Application(object):
             for plugin in pluginList:
                 break
 
-            print pluginInterface
-
             assert plugin != None
             assert pluginInterface.providedBy(plugin)
-
-            print plugin
 
             return plugin
 

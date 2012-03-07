@@ -1,6 +1,6 @@
 from gitdaemon.interfaces import IAuth
-from gitdaemon.tests.ApplicationGitTests import ApplicationTest
-from gitdaemon.tests.RepositoryTests import GitTestHelper, formatRemote
+from gitdaemon.tests.test_daemonWorkflow import ApplicationTest
+from gitdaemon.tests.test_repositoryEncapsulation import GitTestHelper, formatRemote
 from gitdaemon.tests.plugins import keyAuth, passAuth
 
 __author__ = 'christophe'

@@ -73,8 +73,6 @@ class GitTestHelper(unittest.TestCase):
         if keyFile != None:
             sshWrapper = os.path.dirname(__file__) + "/example-key/sshWrapper.sh"
 
-            print "Using", sshWrapper, " as SSH utility"
-
             return {
                 "GIT_SSH": sshWrapper,
                 "GIT_SSH_KEY": keyFile
@@ -175,8 +173,6 @@ class GitProcess(Accumulator):
         self.password = password
 
     def outReceived(self, d):
-        print "" + d + ""
-
         if "Are you sure you want to continue connecting (yes/no)?" in d:
             self.transport.write("yes\n")
 
@@ -192,9 +188,7 @@ class GitProcess(Accumulator):
         Accumulator.outReceived(self, d)
 
     def errReceived(self, d):
-        print d
         Accumulator.errReceived(self, d)
 
     def processEnded(self, reason):
-        print reason
         Accumulator.processEnded(self, reason)

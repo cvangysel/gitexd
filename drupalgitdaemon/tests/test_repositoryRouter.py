@@ -5,8 +5,8 @@ from twisted.trial import unittest
 from drupalgitdaemon import plugins
 from gitdaemon import Application
 from gitdaemon.interfaces import IRepositoryRouter
-from gitdaemon.tests.ApplicationPluginTests import _createDefaultConfigFile
-from gitdaemon.tests.RepositoryTests import GitTestHelper
+from gitdaemon.tests.test_subsystemPlugins import _createDefaultConfigFile
+from gitdaemon.tests.test_repositoryEncapsulation import GitTestHelper
 
 __author__ = 'christophe'
 

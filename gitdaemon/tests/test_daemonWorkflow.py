@@ -2,8 +2,8 @@ from twisted.internet import reactor
 from twisted.trial import unittest
 from gitdaemon import Application
 from gitdaemon.tests import plugins
-from gitdaemon.tests.ApplicationPluginTests import _createDefaultConfigFile
-from gitdaemon.tests.RepositoryTests import GitTestHelper, formatRemote
+from gitdaemon.tests.test_subsystemPlugins import _createDefaultConfigFile
+from gitdaemon.tests.test_repositoryEncapsulation import GitTestHelper, formatRemote
 from gitdaemon.interfaces import IAuth
 
 __author__ = 'christophe'
@@ -13,7 +13,7 @@ class ApplicationTest(GitTestHelper):
     def setUp(self):
         GitTestHelper.setUp(self)
 
-        self.config = self.config = _createDefaultConfigFile(self.repoPath)
+        self.config = _createDefaultConfigFile(self.repoPath)
 
         self.ssh = None
         self.http = None
