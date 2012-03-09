@@ -17,9 +17,14 @@ class DrupalAuth(object):
     def __init__(self):
         self.protocol = HTTPServiceProtocol
 
-    def _handleProtocolCallback(self, result):
+    def _handleProtocolCallback(self, result, app, data):
+        assert isinstance(app, Application)
+        assert isinstance(data, dict)
+
         if result:
-            return User()
+            service = Service(self.protocol(app.getConfig(), 'vcs-auth-data'))
+
+            return User(service, data)
         else:
             return None
 
@@ -27,7 +32,9 @@ class DrupalAuth(object):
         assert isinstance(app, Application)
 
         if app.getConfig().get("DEFAULT", "allowAnonymous", True):
-            return defer.succeed(AnonymousUser())
+            service = Service(self.protocol(app.getConfig(), 'vcs-auth-data'))
+
+            return defer.succeed(AnonymousUser(service))
         else:
             return defer.succeed(None)
 
@@ -39,22 +46,27 @@ class DrupalAuth(object):
         fingerprint = key.fingerprint().replace(':', '')
 
         service = None
+        data = {}
 
         if credentials.username == "git":
             service = Service(self.protocol(app.getConfig(), 'drupalorg-sshkey-check'))
 
-            service.request_bool({
+            data = {
                 "fingerprint": fingerprint
-            })
+            }
+
+            service.request_bool(data)
         else:
             service = Service(self.protocol(app.getConfig(), 'drupalorg-ssh-user-key'))
 
-            service.request_bool({
+            data = {
                 "username": credentials.username,
                 "fingerprint": fingerprint
-            })
+            }
 
-        service.addCallback(self._handleProtocolCallback)
+            service.request_bool(data)
+
+        service.addCallback(self._handleProtocolCallback, app, data)
 
         return service.deferred
 
@@ -64,19 +76,25 @@ class DrupalAuth(object):
 
         service = Service(self.protocol(app.getConfig(), 'drupalorg-vcs-auth-check-user-pass'))
 
-        service.request_bool({
+        data = {
             "username": credentials.username,
             "password": credentials.password
-        })
+        }
 
-        service.addCallback(self._handleProtocolCallback)
+        service.request_bool(data)
+
+        service.addCallback(self._handleProtocolCallback, app, data)
 
         return service.deferred
 
-    def mayAccess(self, user, repository, readOnly):
+    def mayAccess(self, app, user, repository, readOnly):
+        assert isinstance(app, Application)
+        assert isinstance(user, User)
+        assert isinstance(readOnly, bool)
+
         """Whether or not the user may access the repository"""
 
-        return True
+        return user.mayAccess(repository, readOnly)
 
     def _invariant(self):
         assert IServiceProtocol.implementedBy(self._protocol)
