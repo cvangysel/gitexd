@@ -1,5 +1,6 @@
 from twisted.plugin import IPlugin
 from zope.interface.declarations import implements
+from drupalgitdaemon import User
 from drupalgitdaemon.tests.plugins.authorization import auth
 from gitdaemon.interfaces import IAuth
 
@@ -11,7 +12,7 @@ from gitdaemon.interfaces import IAuth
 class DrupalTestAuth(auth.DrupalTestAuth):
     implements(IPlugin, IAuth)
 
-    def mayAccess(self, user, repository, readOnly):
+    def mayAccess(self, app, user, repository, readOnly):
         """
                     Whether or not the user may access the repository
 

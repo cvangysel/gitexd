@@ -1,6 +1,5 @@
 from twisted.internet import reactor
 from twisted.trial import unittest
-from drupalgitdaemon import plugins
 from drupalgitdaemon.tests.plugins import authentication
 from drupalgitdaemon.tests.plugins.authentication.auth import DrupalTestAuth
 from gitdaemon import Application
