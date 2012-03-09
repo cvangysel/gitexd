@@ -1,5 +1,6 @@
 import shlex
 from twisted.internet import reactor
+from twisted.internet.defer import maybeDeferred
 from twisted.internet.interfaces import IProcessProtocol
 from twisted.internet.protocol import ProcessProtocol
 from twisted.plugin import IPlugin
@@ -112,6 +113,18 @@ class InvocationRequestHandler(object):
 
     """The main invocation logic when handling a Git request"""
 
+    def _authorizationCallback(self, result, app, request, repository):
+        assert isinstance(result, bool)
+        assert isinstance(app, Application)
+        assert IInvocationRequest.providedBy(request)
+
+        """Callback for the dereferred returned by the authorization subsystem."""
+
+        if result:
+            request.invocate(repository)
+        else:
+            app.getErrorHandler().handle(GitUserException("You don't have access to this repository.", True, request.getProtocol()))
+
     def handle(self, app, request):
         assert isinstance(app, Application)
         assert IInvocationRequest.providedBy(request)
@@ -119,17 +132,20 @@ class InvocationRequestHandler(object):
         repository = app.getRepositoryRouter().route(app, request.getRepositoryPath())
 
         if repository is not None:
-            if app.getAuth().mayAccess(request.getUser(), repository, False):
-                request.invocate(repository)
-            else:
-                app.getErrorHandler().handle(GitUserException("You don't have access to this repository.", True, request.getProtocol()))
+            # mayAccess can return a deferred that returns a value or just return a value
+            # many authorization requests go to another subsystem first
+
+            # TODO If the AuthorizationProtocol wrapper is completed, integrate it more in the Request objects
+            # TODO so we can extract a list of labels the request affects.
+            d = maybeDeferred(app.getAuth().mayAccess, app, request.getUser(), repository, False)
+
+            d.addCallback(self._authorizationCallback, app, request, repository)
         else:
             app.getErrorHandler().handle(GitUserException("The specified repository doesn't exist.", True, request.getProtocol()))
 
     def createHTTPInvocationRequest(self, request, proto, user, env, qargs = {}):
         assert(isinstance(request, Request))
         assert(isinstance(proto, ProcessProtocol))
-        #assert(isinstance(user, User))
         assert(isinstance(env, dict))
         assert(isinstance(qargs, list) or isinstance(qargs, str))
 
@@ -142,7 +158,6 @@ class InvocationRequestHandler(object):
     def createSSHInvocationRequest(self, request, proto, user):
         assert(isinstance(request, str))
         assert(isinstance(proto, ProcessProtocol))
-        #assert(isinstance(user, User))
 
         request = SSHInvocationRequest(request, proto, user)
 

@@ -24,7 +24,7 @@ class Auth(object):
 
         return defer.succeed(True)
 
-    def mayAccess(self, user, repository, readOnly):
+    def mayAccess(self, app, user, repository, readOnly):
         """Whether or not the user may access the repository"""
 
         return True

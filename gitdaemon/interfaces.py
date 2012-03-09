@@ -52,7 +52,7 @@ class IAuth(Interface):
     def authenticatePassword(self, app, credentials):
         """Authentication based on username and password"""
 
-    def mayAccess(self, user, repository, readOnly):
+    def mayAccess(self, app, user, repository, readOnly):
         """Whether or not the user may access the repository"""
 
 class IExceptionHandler(Interface):

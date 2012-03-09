@@ -28,7 +28,7 @@ class Session(object):
         assert(isinstance(cmd, str))
         self._invariant()
 
-        self.user.app.getRequestHandler().handle(self.user.app, self.user.app.getRequestHandler().createSSHInvocationRequest(cmd, proto, self.user))
+        self.user.app.getRequestHandler().handle(self.user.app, self.user.app.getRequestHandler().createSSHInvocationRequest(cmd, proto, self.user.getAuthUser()))
 
         assert proto.errConnectionLost() is None
         self._invariant()
@@ -52,11 +52,16 @@ class Session(object):
 
 class ConchUser(avatar.ConchUser, Object):
 
-    def __init__(self, app, username):
+    def __init__(self, app, user):
         avatar.ConchUser.__init__(self)
         Object.__init__(self, app)
 
         self.channelLookup.update({'session':session.SSHSession})
+
+        self.user = user
+
+    def getAuthUser(self):
+        return self.user
 
 class Factory(SSHFactory):
 

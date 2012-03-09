@@ -86,7 +86,7 @@ class Auth(object):
         else:
             return None
 
-    def mayAccess(self, user, repository, readOnly):
+    def mayAccess(self, app, user, repository, readOnly):
         """Whether or not the user may access the repository"""
 
         return True
