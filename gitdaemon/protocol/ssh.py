@@ -85,5 +85,5 @@ class Factory(SSHFactory):
             'ssh-rsa': keys.Key.fromFile(config.get("DEFAULT", "publicKeyLocation"))
         }
 
-        if components.getAdapterFactory(ConchUser, ISession, None) == None:
+        if components.getAdapterFactory(ConchUser, ISession, None) is None:
             components.registerAdapter(Session, ConchUser, ISession)

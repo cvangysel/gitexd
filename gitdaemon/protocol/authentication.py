@@ -29,12 +29,13 @@ class CredentialsChecker(gitdaemon.Object):
     def authCallback(self, result, credentials):
         assert ICredentials.providedBy(credentials)
 
-        if result == False or result == None:
+        if result == False or result is None:
             return Failure(UnauthorizedLogin())
         else:
             return result
 
     def errorHandler(self, fail):
+        #TODO Fix this
         self._invariant()
         assert isinstance(fail, Failure)
 
@@ -51,6 +52,7 @@ class CredentialsChecker(gitdaemon.Object):
             fail.printTraceback()
             reactor.stop()
 
+        # TODO Figure out what to do with this
         """if proto.connectionMade():
             proto.loseConnection()
 
@@ -67,7 +69,7 @@ class PublicKeyChecker(CredentialsChecker):
 
         assert ICredentials.providedBy(credentials)
 
-        if result == False or result == None:
+        if result == False or result is None:
             return Failure(UnauthorizedLogin())
         elif not credentials.signature:
             return Failure(ValidPublicKey())

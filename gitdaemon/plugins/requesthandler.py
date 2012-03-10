@@ -66,6 +66,7 @@ class HTTPInvocationRequest(InvocationRequest):
 
         self._invariant()
 
+        # TODO Fix this, especially the REMOTE_USER env var
         self.env['SCRIPT_FILENAME'] = self.gitHTTPBackend
         self.env['GIT_PROJECT_ROOT'] = repository
         self.env['PATH_INFO'] = "/" + "/".join(self.request.prepath[-1:])

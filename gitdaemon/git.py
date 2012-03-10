@@ -1,8 +1,8 @@
 import os
 import subprocess
-from twisted.internet import utils
 
 def _findExecuteable(executable):
+    #TODO Check this
     path = os.environ.get("PATH", os.defpath)
 
     fullPath = None
@@ -15,7 +15,7 @@ def _findExecuteable(executable):
         else:
             fullPath = None
 
-    assert fullPath != None and isinstance(fullPath, str)
+    assert fullPath is not None and isinstance(fullPath, str)
 
     return fullPath
 
@@ -23,8 +23,8 @@ def findGitShell():
     return _findExecuteable("git-shell")
 
 def findGitHTTPBackend():
+    # TODO Fix this
     return "/usr/lib/git-core/git-http-backend"
-
 
 class Repository(object):
 
@@ -39,19 +39,18 @@ class Repository(object):
         
         self._invariant()
 
-    def getGitCommand(self, command, arg = []):
+    @staticmethod
+    def getGitCommand(command, arg = []):
         """Generates the command-line command including arguments to be executed in the repository."""
 
         assert isinstance(command, str)
         assert len(command) > 0
         assert isinstance(arg, list)
-        self._invariant()
 
         ret = [command] + arg
 
         assert isinstance(ret, list)
         assert len(ret) == len(arg) + 1
-        self._invariant()
 
         return ret
 
@@ -66,7 +65,7 @@ class Repository(object):
         assert isinstance(arg, list)
         self._invariant()
 
-        arguments = self.getGitCommand(command, arg)
+        arguments = Repository.getGitCommand(command, arg)
 
         output = subprocess.check_output([self.pathToGit] + arguments, stderr=subprocess.STDOUT, cwd=self.path)
 

@@ -9,12 +9,12 @@ from twisted.trial import unittest
 from gitdaemon.git import Repository
 
 def formatRemote(protocol, transport, repository, username = None, password = None):
-    if username == None:
+    if username is None:
         auth = ""
     else:
         auth = username
 
-        if password != None:
+        if password is not None:
             auth += ":" + password
 
         auth += "@"
@@ -70,7 +70,7 @@ class GitTestHelper(unittest.TestCase):
         repository.commit()
 
     def _getEnvironmentVars(self, keyFile):
-        if keyFile != None:
+        if keyFile is not None:
             sshWrapper = os.path.dirname(__file__) + "/example-key/sshWrapper.sh"
 
             return {
@@ -95,14 +95,14 @@ class GitTestHelper(unittest.TestCase):
         return d
 
     def createTemporaryRepository(self, clone = None, bare = False, path = None):
-        if path == None:
+        if path is None:
             path = tempfile.mkdtemp(dir=self.repoPath)
         else:
             path = tempfile.mkdtemp(dir=path)
 
         repository = Repository(path)
 
-        if clone != None:
+        if clone is not None:
             repository.clone(self.repository.path, bare)
 
         return repository
@@ -177,7 +177,7 @@ class GitProcess(Accumulator):
             self.transport.write("yes\n")
 
         if "assword:" in d:
-            if self.password != None:
+            if self.password is not None:
                 self.transport.write(self.password + "\n")
             else:
                 self.transport.write("\n")

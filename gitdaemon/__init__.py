@@ -10,12 +10,8 @@ class Object(object):
     def _invariant(self):
         assert isinstance(self.app, Application)
 
-from twisted.plugin import IPlugin, getPlugins
 from types import ModuleType
 from gitdaemon.protocol.authentication import Realm
-
-list(getPlugins(IPlugin))
-
 from ConfigParser import ConfigParser
 from twisted.cred.portal import Portal
 from twisted.plugin import getPlugins
@@ -97,7 +93,7 @@ class Application(object):
             for plugin in pluginList:
                 break
 
-            assert plugin != None
+            assert plugin is not None
             assert pluginInterface.providedBy(plugin)
 
             return plugin
