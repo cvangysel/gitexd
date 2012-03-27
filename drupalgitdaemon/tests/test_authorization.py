@@ -7,6 +7,52 @@ from gitdaemon.tests.test_repositoryEncapsulation import formatRemote
 
 __author__ = 'christophe'
 
+class PushctlTests(AuthenticationTests):
+
+    pluginPackages = {
+        IAuth: authorization
+    }
+
+    def testPushEnabled(self):
+        self._setUp()
+
+        remoteRepository = self._testSSH("test", "passAuth")
+
+        def processEnded(result):
+            self.assertEqual(self.repository, remoteRepository)
+
+        return self.pushRepository(self.repository, "pass").addCallback(processEnded)
+
+    def testPushDisabled(self):
+        self._setUp()
+
+        remoteRepository = self._testSSH("test", "passAuth-allPushesDisabled")
+
+        def processEnded(result):
+            self.assertNotEqual(self.repository, remoteRepository)
+
+        return self.pushRepository(self.repository, "pass").addCallback(processEnded)
+
+    def testSandboxPushDisabled(self):
+        self._setUp()
+
+        remoteRepository = self._testSSH("test", "passAuth-allSandboxPushesDisabled")
+
+        def processEnded(result):
+            self.assertNotEqual(self.repository, remoteRepository)
+
+        return self.pushRepository(self.repository, "pass").addCallback(processEnded)
+
+    def testSandboxPushEnabledCorePushDisabled(self):
+        self._setUp()
+
+        remoteRepository = self._testSSH("test", "passAuth-sandboxPushEnabledCorePushDisabled")
+
+        def processEnded(result):
+            self.assertEqual(self.repository, remoteRepository)
+
+        return self.pushRepository(self.repository, "pass").addCallback(processEnded)
+
 class AuthorizationTests(AuthenticationTests):
 
     pluginPackages = {

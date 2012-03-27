@@ -28,17 +28,20 @@ class DummyServiceProtocol(object):
         for a in args:
             arguments.update(a)
 
-        if arguments.has_key('username'):
-            filename += "_user-" + arguments['username']
+        if len(arguments):
+            if arguments.has_key('username'):
+                filename += "_user-" + arguments['username']
 
-        if arguments.has_key('password'):
-            filename += "_pass-" + arguments['password']
+            if arguments.has_key('password'):
+                filename += "_pass-" + arguments['password']
 
-        if arguments.has_key('fingerprint'):
-            filename += "_fingerprint-" + arguments['fingerprint']
+            if arguments.has_key('fingerprint'):
+                filename += "_fingerprint-" + arguments['fingerprint']
 
-        if arguments.has_key('project_uri'):
-            filename += "_project-" + arguments['project_uri']
+            if arguments.has_key('project_uri'):
+                filename += "_project-" + arguments['project_uri']
+        else:
+            filename = "default"
 
         try:
             file = open(testFilePath + "/" + filename).read()

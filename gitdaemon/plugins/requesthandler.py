@@ -130,11 +130,12 @@ class InvocationRequestHandler(object):
 
     def _errorHandler(self, fail, app, proto):
         #TODO Fix this; also look at authentication stuff
+
         assert isinstance(fail, Failure)
         assert isinstance(app, Application)
         assert isinstance(proto, ProcessProtocol)
 
-        r = fail.trap(GitUserException, NotImplementedError)
+        r = fail.trap(GitUserException, NotImplementedError, Exception)
 
         if r == GitUserException:
             """Pass to the ExceptionHandler"""
@@ -146,6 +147,10 @@ class InvocationRequestHandler(object):
             print fail.value
 
             fail.printTraceback()
+            reactor.stop()
+        else:
+            print fail
+
             reactor.stop()
 
     def handle(self, app, request):

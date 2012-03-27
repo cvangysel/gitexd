@@ -23,9 +23,10 @@ class DrupalAuth(object):
         assert isinstance(data, dict)
 
         if result:
-            service = Service(self.protocol(app.getConfig(), 'vcs-auth-data'))
+            authService = Service(self.protocol(app.getConfig(), 'vcs-auth-data'))
+            pushctlService = Service(self.protocol(app.getConfig(), 'pushctl-state'))
 
-            return Session(service, data)
+            return Session(authService, pushctlService, data)
         else:
             return None
 

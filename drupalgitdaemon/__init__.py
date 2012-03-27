@@ -1,3 +1,4 @@
+from twisted.internet.defer import DeferredList
 from twisted.python.failure import Failure
 from zope.interface.declarations import implements
 from zope.interface.interface import Interface, Attribute
@@ -37,60 +38,88 @@ class ISession(Interface):
 
     """ """
 
-    service = Attribute("Service used to fetch information about repositories")
-
     def mayAccess(self, app, repository, readOnly = False, label = None):
         """ """
 
 class Session(object):
     implements(ISession)
 
-    def __init__(self, service, data):
+    def __init__(self, authService, pushctlService, data):
         assert isinstance(data, dict)
 
         self._username = data["username"] if data.has_key("username") else None
         self._password = data["password"] if data.has_key("password") else None
         self._fingerprint = data["fingerprint"] if data.has_key("fingerprint") else None
-        self._service = service
+
+        self._authService = authService
+        self._pushctlService = pushctlService
 
     def mayAccess(self, app, repository, readOnly = False, label = None):
 
         def _authCallback(data):
-            assert isinstance(data, dict)
+            auth, pushctl = data
+            auth, authData = auth
+            pushctl, pushctlData = pushctl
 
-            if not readOnly:
+            if isinstance(authData, Failure):
+                return authData
+            elif isinstance(pushctlData, Failure):
+                return pushctlData
 
-                if not data["status"]:
-                    return Failure(GitUserException("Project {0} has been disabled".format(data['repository_name'], True)))
+            assert isinstance(authData, dict)
+            assert isinstance(pushctlData, int)
 
-                user = _mapUser(data["users"], self._username, self._password, self._fingerprint)
+            if not auth:
+                return Failure(GitUserException("Repository does not exist. Verify that your remote is correct."))
 
-                if user is None:
-                    return Failure(GitUserException("User '{1}' does not have write permissions for repository {0}".format(data['repository_name'], self._username)))
-                elif not user["global"]:
-                    return True
+            elif auth and pushctl and not readOnly:
+                mask = authData["repo_group"] & pushctlData
+
+                if mask:
+                    error = "Pushes for this type of repository are currently disabled."
+
+                    if mask & 0x01:
+                        error = "Pushes to core are currently disabled."
+                    if mask & 0x02:
+                        error = "Pushes to projects are currently disabled."
+                    if mask & 0x04:
+                        error = "Pushes to sandboxes are currently disabled."
+
+                    return Failure(GitUserException(error))
+
                 else:
-                    # Account is globally disabled or disallowed
-                    # 0x01 = no Git user role, but unknown reason (probably a bug!)
-                    # 0x02 = Git account suspended
-                    # 0x04 = Git ToS unchecked
-                    # 0x08 = Drupal.org account blocked
-                    error = []
 
-                    if user["global"] & 0x02:
-                        error.append("Your Git access has been suspended.")
-                    if user["global"] & 0x04:
-                        error.append("You are required to accept the Git Access Agreement in your user profile before using Git.")
-                    if user["global"] & 0x08:
-                        error.append("Your Drupal.org account has been blocked.")
+                    if not authData["status"]:
+                        return Failure(GitUserException("Project {0} has been disabled".format(authData['repository_name'])))
 
-                    if len(error) == 0:
-                        if user["global"] == 0x01:
-                            error.append("You do not have permission to access '{0}' with the provided credentials.\n".format(data['repository_name']))
-                        else:
-                            error.append("This operation cannot be completed at this time.  It may be that we are experiencing technical difficulties or are currently undergoing maintenance.")
+                    user = _mapUser(authData["users"], self._username, self._password, self._fingerprint)
 
-                    return Failure(GitUserException("\n".join(error)))
+                    if user is None:
+                        return Failure(GitUserException("User '{1}' does not have write permissions for repository {0}".format(authData['repository_name'], self._username)))
+                    elif not user["global"]:
+                        return True
+                    else:
+                        # Account is globally disabled or disallowed
+                        # 0x01 = no Git user role, but unknown reason (probably a bug!)
+                        # 0x02 = Git account suspended
+                        # 0x04 = Git ToS unchecked
+                        # 0x08 = Drupal.org account blocked
+                        error = []
+
+                        if user["global"] & 0x02:
+                            error.append("Your Git access has been suspended.")
+                        if user["global"] & 0x04:
+                            error.append("You are required to accept the Git Access Agreement in your user profile before using Git.")
+                        if user["global"] & 0x08:
+                            error.append("Your Drupal.org account has been blocked.")
+
+                        if len(error) == 0:
+                            if user["global"] == 0x01:
+                                error.append("You do not have permission to access '{0}' with the provided credentials.\n".format(authData['repository_name']))
+                            else:
+                                error.append("This operation cannot be completed at this time.  It may be that we are experiencing technical difficulties or are currently undergoing maintenance.")
+
+                        return Failure(GitUserException("\n".join(error)))
             else:
                 # All repositories are publicly readable.
                 return True
@@ -100,13 +129,20 @@ class Session(object):
         if project is None:
             return False
 
-        self._service.request_json({
+        self._authService.request_json({
             "project_uri": project
         })
 
-        self._service.deferred.addCallback(_authCallback)
+        # Adding project_uri as an argument for push-control is not required
+        # but is handy for testing purposes.
+        self._pushctlService.request_json({
+            "project_uri": project
+        })
 
-        return self._service.deferred
+        d = DeferredList([self._authService.deferred, self._pushctlService.deferred], consumeErrors=True)
+        d.addCallback(_authCallback)
+
+        return d
 
 class AnonymousSession(object):
     implements(ISession)
