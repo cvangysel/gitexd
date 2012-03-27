@@ -1,3 +1,2 @@
 #!/bin/bash
-trial gitdaemon/
-trial drupalgitdaemon/
+trial gitdaemon/ drupalgitdaemon/

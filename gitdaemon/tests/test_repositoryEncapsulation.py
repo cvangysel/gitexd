@@ -28,10 +28,24 @@ class GitTestHelper(unittest.TestCase):
 
         from gitdaemon.git import Repository
 
-        self.path = tempfile.mkdtemp()
+        self.path = self._generateRepositoryDirectory()
         self.repository = Repository(self.path)
 
         self.repoPath = tempfile.mkdtemp()
+
+    def _generateRepositoryDirectory(self, name = None, dir = None):
+        if name is None:
+            return tempfile.mkdtemp('', 'tmp', dir)
+        else:
+            print name, dir
+            if dir is not None:
+                path = dir + "/" + name
+            else:
+                path = "/tmp/" + name
+
+            os.mkdir(path)
+
+            return path
 
     def generateRandomString(self, n = 100):
         alphabet = "abcdefghijklmnopqrstuvwxyz"
@@ -94,11 +108,11 @@ class GitTestHelper(unittest.TestCase):
 
         return d
 
-    def createTemporaryRepository(self, clone = None, bare = False, path = None):
+    def createTemporaryRepository(self, name = None, clone = None, bare = False, path = None):
         if path is None:
-            path = tempfile.mkdtemp(dir=self.repoPath)
-        else:
-            path = tempfile.mkdtemp(dir=path)
+            path = self.repoPath
+
+        path = self._generateRepositoryDirectory(name, dir=path)
 
         repository = Repository(path)
 

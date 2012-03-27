@@ -59,7 +59,7 @@ class IExceptionHandler(Interface):
 
     """Handles Exceptions of the IException class"""
 
-    def handle(self, exception):
+    def handle(self, exception, proto = None):
         """Handles exceptions"""
 
 class IException(Interface):
@@ -74,3 +74,6 @@ class IException(Interface):
 
     def getMessage(self):
         """Returns a string indicating the exception."""
+
+    def bindProtocol(self, proto):
+        """Bind a protocol to the exception."""

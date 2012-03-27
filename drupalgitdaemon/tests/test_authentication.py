@@ -1,3 +1,5 @@
+import os
+import tempfile
 from twisted.internet import reactor
 from twisted.trial import unittest
 from drupalgitdaemon.tests.plugins import authentication
@@ -24,20 +26,33 @@ class AuthenticationTests(ApplicationTest):
         IAuth: authentication
     }
 
-    def _testHTTP(self, user = None):
+    def _generateRepositoryDirectory(self, name = None, dir = None):
+        if name is None:
+            return tempfile.mkdtemp('.git', 'tmp', dir)
+        else:
+            if dir is not None:
+                path = dir + "/" + name + ".git"
+            else:
+                path = "/tmp/" + name + ".git"
+
+            os.mkdir(path)
+
+            return path
+
+    def _testHTTP(self, user = None, name = None):
         self.repository.initialize()
 
-        remoteRepository = self.createTemporaryRepository(self.repository.path, True)
+        remoteRepository = self.createTemporaryRepository(name, self.repository.path, True)
 
         self.repository.addRemote("origin", formatRemote("http", self.http, remoteRepository.path.split('/')[-1], user))
         self.generateComplicatedCommit()
 
         return remoteRepository
 
-    def _testSSH(self, user):
+    def _testSSH(self, user, name = None):
         self.repository.initialize()
 
-        remoteRepository = self.createTemporaryRepository(self.repository.path, True)
+        remoteRepository = self.createTemporaryRepository(name, self.repository.path, True)
 
         self.repository.addRemote("origin", formatRemote("ssh", self.ssh, remoteRepository.path.split('/')[-1], user))
         self.generateComplicatedCommit()

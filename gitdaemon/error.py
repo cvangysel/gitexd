@@ -2,15 +2,18 @@ from twisted.conch.ssh import session
 from twisted.internet import protocol
 from twisted.internet.interfaces import ITransport
 from twisted.internet.protocol import ProcessProtocol
+from twisted.python import log
 from zope.interface.declarations import implements
 from gitdaemon.interfaces import IException
 
 CRITICAL, NOTICE = range(0, 2)
 
-class UserException(object):
+class UserException(Exception):
     implements(IException)
 
-    def __init__(self, message, critical = False, proto = None):
+    def __init__(self, message, critical = True, proto = None):
+        Exception.__init__(self)
+
         assert isinstance(message, str)
         assert isinstance(critical, bool)
         assert proto is None or isinstance(proto, ProcessProtocol)
@@ -28,7 +31,10 @@ class UserException(object):
     def _logMessage(self):
         """Logs the exception to the Twisted logger"""
 
-        print self._message
+        if self._priority == NOTICE:
+            log.msg(self._message)
+        else:
+            log.err(self._message)
 
     def _informUser(self):
         """Informs the user of the error and closes the connection if appropiate"""
@@ -44,6 +50,12 @@ class UserException(object):
 
     def getMessage(self):
         return self._message
+
+    def bindProtocol(self, proto):
+        assert isinstance(proto, ProcessProtocol)
+        assert self._proto is None
+
+        self._proto = proto
 
 class GitUserException(UserException):
 

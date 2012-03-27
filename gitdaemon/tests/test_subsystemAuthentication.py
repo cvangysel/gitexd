@@ -17,7 +17,7 @@ class KeyAuthenticationTests(ApplicationTest):
     def _test(self, user):
         self.repository.initialize()
 
-        remoteRepository = self.createTemporaryRepository(self.repository.path, True)
+        remoteRepository = self.createTemporaryRepository(None, self.repository.path, True)
 
         self.repository.addRemote("origin", formatRemote("ssh", self.ssh, remoteRepository.path.split('/')[-1], user))
         self.generateComplicatedCommit()
@@ -60,7 +60,7 @@ class PasswordAuthenticationTests(ApplicationTest):
     def _testSSH(self, user):
         self.repository.initialize()
 
-        remoteRepository = self.createTemporaryRepository(self.repository.path, True)
+        remoteRepository = self.createTemporaryRepository(None, self.repository.path, True)
 
         self.repository.addRemote("origin", formatRemote("ssh", self.ssh, remoteRepository.path.split('/')[-1], user))
         self.generateComplicatedCommit()
@@ -70,7 +70,7 @@ class PasswordAuthenticationTests(ApplicationTest):
     def _testHTTP(self, user):
         self.repository.initialize()
 
-        remoteRepository = self.createTemporaryRepository(self.repository.path, True)
+        remoteRepository = self.createTemporaryRepository(None, self.repository.path, True)
 
         self.repository.addRemote("origin", formatRemote("http", self.http, remoteRepository.path.split('/')[-1], user))
         self.generateComplicatedCommit()

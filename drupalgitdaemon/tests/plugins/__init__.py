@@ -37,6 +37,9 @@ class DummyServiceProtocol(object):
         if arguments.has_key('fingerprint'):
             filename += "_fingerprint-" + arguments['fingerprint']
 
+        if arguments.has_key('project_uri'):
+            filename += "_project-" + arguments['project_uri']
+
         try:
             file = open(testFilePath + "/" + filename).read()
         except:

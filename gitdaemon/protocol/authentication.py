@@ -39,24 +39,17 @@ class CredentialsChecker(gitdaemon.Object):
         self._invariant()
         assert isinstance(fail, Failure)
 
-        if fail.type == UnauthorizedLogin:
-            """"""
-            # TODO This should be passed to ErrorHandler
+        r = fail.trap(UnauthorizedLogin, ValidPublicKey, NotImplementedError)
 
+        if r == UnauthorizedLogin:
             fail.trap(Failure)
-        elif fail.type == ValidPublicKey:
-            fail.trap(Failure)
-        else:
+        elif r == NotImplementedError:
             # Unknown error, stop execution
+
+            print fail.value
 
             fail.printTraceback()
             reactor.stop()
-
-        # TODO Figure out what to do with this
-        """if proto.connectionMade():
-            proto.loseConnection()
-
-        assert not proto.connectionMade()"""
 
 class PublicKeyChecker(CredentialsChecker):
     implements(ICredentialsChecker)

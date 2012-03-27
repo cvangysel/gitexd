@@ -3,16 +3,17 @@ from twisted.cred.credentials import ISSHPrivateKey, IUsernamePassword
 from twisted.internet import defer
 from twisted.plugin import IPlugin
 from zope.interface.declarations import implements
-from drupalgitdaemon import IUser, AnonymousUser, User
+from drupalgitdaemon import ISession, AnonymousSession, Session
 from drupalgitdaemon.service import IServiceProtocol, Service
 from drupalgitdaemon.service.protocols import HTTPServiceProtocol
 from gitdaemon import Application
 from gitdaemon.interfaces import IAuth
+import hashlib
 
 class DrupalAuth(object):
     implements(IPlugin, IAuth)
 
-    UserInterface = IUser
+    UserInterface = ISession
 
     def __init__(self):
         self.protocol = HTTPServiceProtocol
@@ -24,7 +25,7 @@ class DrupalAuth(object):
         if result:
             service = Service(self.protocol(app.getConfig(), 'vcs-auth-data'))
 
-            return User(service, data)
+            return Session(service, data)
         else:
             return None
 
@@ -34,7 +35,7 @@ class DrupalAuth(object):
         if app.getConfig().get("DEFAULT", "allowAnonymous", True):
             service = Service(self.protocol(app.getConfig(), 'vcs-auth-data'))
 
-            return defer.succeed(AnonymousUser(service))
+            return defer.succeed(AnonymousSession(service))
         else:
             return defer.succeed(None)
 
@@ -78,7 +79,7 @@ class DrupalAuth(object):
 
         data = {
             "username": credentials.username,
-            "password": credentials.password
+            "password": hashlib.md5(credentials.password).hexdigest()
         }
 
         service.request_bool(data)
@@ -89,12 +90,12 @@ class DrupalAuth(object):
 
     def mayAccess(self, app, user, repository, readOnly):
         assert isinstance(app, Application)
-        assert isinstance(user, User)
+        assert isinstance(user, Session)
         assert isinstance(readOnly, bool)
 
         """Whether or not the user may access the repository"""
 
-        return user.mayAccess(repository, readOnly)
+        return user.mayAccess(app, repository, readOnly)
 
     def _invariant(self):
         assert IServiceProtocol.implementedBy(self._protocol)

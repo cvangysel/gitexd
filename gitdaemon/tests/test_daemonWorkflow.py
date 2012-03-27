@@ -45,7 +45,7 @@ class ApplicationGitTests(ApplicationTest):
     def testSSHPush(self):
         self.repository.initialize()
 
-        remoteRepository = self.createTemporaryRepository(self.repository.path, True)
+        remoteRepository = self.createTemporaryRepository(None, self.repository.path, True)
 
         self.repository.addRemote("origin", formatRemote("ssh", self.ssh, remoteRepository.path.split('/')[-1]))
         self.generateComplicatedCommit()
@@ -58,7 +58,7 @@ class ApplicationGitTests(ApplicationTest):
     def testHTTPPush(self):
         self.repository.initialize()
 
-        remoteRepository = self.createTemporaryRepository(self.repository.path, True)
+        remoteRepository = self.createTemporaryRepository(None, self.repository.path, True)
 
         self.repository.addRemote("origin", formatRemote("http", self.http, remoteRepository.path.split('/')[-1]))
         self.generateComplicatedCommit()
@@ -71,7 +71,7 @@ class ApplicationGitTests(ApplicationTest):
     def testSSHPull(self):
         self.repository.initialize()
 
-        otherRepository = self.createTemporaryRepository(self.repository.path, False)
+        otherRepository = self.createTemporaryRepository(None, self.repository.path, False)
 
         self.repository.addRemote("origin", formatRemote("ssh", self.ssh, otherRepository.path.split('/')[-1]))
         self.generateComplicatedCommit(otherRepository)
@@ -86,7 +86,7 @@ class ApplicationGitTests(ApplicationTest):
     def testHTTPPull(self):
         self.repository.initialize()
 
-        otherRepository = self.createTemporaryRepository(self.repository.path, False)
+        otherRepository = self.createTemporaryRepository(None, self.repository.path, False)
 
         self.repository.addRemote("origin", formatRemote("http", self.http, otherRepository.path.split('/')[-1]) + "/.git")
         self.generateComplicatedCommit(otherRepository)

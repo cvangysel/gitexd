@@ -1,6 +1,6 @@
 from twisted.plugin import IPlugin
 from zope.interface.declarations import implements
-from drupalgitdaemon import User
+from drupalgitdaemon import Session
 from drupalgitdaemon.tests.plugins.authorization import auth
 from gitdaemon.interfaces import IAuth
 

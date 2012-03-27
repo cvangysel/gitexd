@@ -1,9 +1,11 @@
 import shlex
+from twisted.cred.error import UnauthorizedLogin
 from twisted.internet import reactor
 from twisted.internet.defer import maybeDeferred
 from twisted.internet.interfaces import IProcessProtocol
 from twisted.internet.protocol import ProcessProtocol
 from twisted.plugin import IPlugin
+from twisted.python.failure import Failure
 from twisted.web.http import Request
 from zope.interface.interface import Interface
 from gitdaemon import Application
@@ -126,6 +128,26 @@ class InvocationRequestHandler(object):
         else:
             app.getErrorHandler().handle(GitUserException("You don't have access to this repository.", True, request.getProtocol()))
 
+    def _errorHandler(self, fail, app, proto):
+        #TODO Fix this; also look at authentication stuff
+        assert isinstance(fail, Failure)
+        assert isinstance(app, Application)
+        assert isinstance(proto, ProcessProtocol)
+
+        r = fail.trap(GitUserException, NotImplementedError)
+
+        if r == GitUserException:
+            """Pass to the ExceptionHandler"""
+
+            app.getErrorHandler().handle(fail.value, proto)
+        elif r == NotImplementedError:
+            """Unknown exception, halt excecution"""
+
+            print fail.value
+
+            fail.printTraceback()
+            reactor.stop()
+
     def handle(self, app, request):
         assert isinstance(app, Application)
         assert IInvocationRequest.providedBy(request)
@@ -141,6 +163,8 @@ class InvocationRequestHandler(object):
             d = maybeDeferred(app.getAuth().mayAccess, app, request.getUser(), repository, False)
 
             d.addCallback(self._authorizationCallback, app, request, repository)
+
+            d.addErrback(self._errorHandler, app, request.getProtocol())
         else:
             app.getErrorHandler().handle(GitUserException("The specified repository doesn't exist.", True, request.getProtocol()))
 
