@@ -1,6 +1,7 @@
 import shutil
 import tempfile
 from gitdaemon.tests import  GitTestHelper
+from gitdaemon.tests.git import Repository
 
 class RepositoryTestCase(GitTestHelper):
 
@@ -35,7 +36,6 @@ class RepositoryTestCase(GitTestHelper):
         self.repository.initialize()
         self.generateComplicatedCommit()
 
-        from gitdaemon.protocol.git import Repository
         path = tempfile.mkdtemp()
         clonedRepository = Repository(path)
 
@@ -47,7 +47,6 @@ class RepositoryTestCase(GitTestHelper):
         self.repository.initialize()
         self.generateComplicatedCommit()
 
-        from gitdaemon.protocol.git import Repository
         path = tempfile.mkdtemp()
         clonedRepository = Repository(path)
 

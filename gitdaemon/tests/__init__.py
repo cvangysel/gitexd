@@ -7,14 +7,12 @@ from twisted.internet import reactor, defer
 from twisted.test.test_process import Accumulator
 from twisted.trial import unittest
 from gitdaemon import Application
-from gitdaemon.protocol.git import Repository
+from gitdaemon.tests.git import Repository
 
 class GitTestHelper(unittest.TestCase):
 
     def setUp(self):
         unittest.TestCase.setUp(self)
-
-        from gitdaemon.protocol.git import Repository
 
         self.path = self._generateRepositoryDirectory()
         self.repository = Repository(self.path)
