@@ -1,14 +1,6 @@
-import shlex
-from twisted.internet import reactor
-from twisted.internet.interfaces import IProcessProtocol
-from twisted.internet.protocol import ProcessProtocol
 from twisted.plugin import IPlugin
-from twisted.web.http import Request
-from gitdaemon import Application
-from gitdaemon.git import findGitShell, findGitHTTPBackend
 from zope.interface import implements
-from gitdaemon.interfaces import IInvocationRequest, IInvocationRequestHandler, IRepositoryRouter
-from gitdaemon.protocol.authorization import AuthorizedProcessProtocolWrapper
+from gitdaemon.interfaces import IInvocationRequest, IInvocationRequestHandler
 
 class StubInvocationRequest(object):
     implements(IInvocationRequest)
@@ -86,7 +78,7 @@ class Auth(object):
         else:
             return None
 
-    def mayAccess(self, app, user, repository, readOnly):
+    def authorizeRepository(self, app, user, repository, readOnly):
         """Whether or not the user may access the repository"""
 
         return True

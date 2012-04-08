@@ -1,7 +1,8 @@
-from twisted.cred.credentials import IUsernamePassword, ISSHPrivateKey
 from twisted.internet import defer
 from twisted.plugin import IPlugin
+from twisted.python.failure import Failure
 from zope.interface.declarations import implements
+from gitdaemon.protocol.error import GitError
 from gitdaemon.interfaces import IAuth
 from gitdaemon.tests.plugins.default.default import UserStub, IUserStub
 
@@ -11,24 +12,17 @@ class Auth(object):
     UserInterface = IUserStub
 
     def allowAnonymousAccess(self, app):
-        return None
+        return defer.succeed(UserStub())
 
     def authenticateKey(self, app, credentials):
-        assert ISSHPrivateKey.providedBy(credentials)
-
-        return False
+        return defer.succeed(UserStub())
 
     def authenticatePassword(self, app, credentials):
-        assert IUsernamePassword.providedBy(credentials)
-
-        if credentials.username == "pass" and credentials.password == "test_pass":
-            return defer.succeed(UserStub())
-        else:
-            return None
+        return defer.succeed(UserStub())
 
     def authorizeRepository(self, app, user, repository, readOnly):
         """Whether or not the user may access the repository"""
 
-        return True
+        return Failure(GitError("Hello world"))
 
 auth = Auth()

@@ -26,7 +26,7 @@ class IInvocationRequestHandler(Interface):
     def handle(self, app, request):
         """Handle a request through Git"""
 
-    def createHTTPInvocationRequest(self, request, proto, user, env, qargs = {}):
+    def createHTTPInvocationRequest(self, request, proto, user, env):
         """Create an instance of IInvocationRequest that handles HTTP requests."""
 
     def createSSHInvocationRequest(self, request, proto, user):
@@ -52,8 +52,19 @@ class IAuth(Interface):
     def authenticatePassword(self, app, credentials):
         """Authentication based on username and password"""
 
-    def mayAccess(self, app, user, repository, readOnly):
+    def authorizeRepository(self, app, user, repository, readOnly):
         """Whether or not the user may access the repository"""
+
+    def authorizeAdvertisement(self, user, advertisement):
+        """
+                This method gets a chance to make changes to the advertisement exposed
+                by the Git process that handles communication with the repository.
+              """
+
+    def authorizeRequest(self, user, request):
+        """
+                This method gets a chance to make changes to the request made by the client.
+              """
 
 class IExceptionHandler(Interface):
 
@@ -66,14 +77,8 @@ class IException(Interface):
 
     """Represents an exception that's passed to the ErrorHandler"""
 
-    def throw(self):
-        """Throws the exception; executes the normal behaviour"""
-
-    def getPriority(self):
-        """Returns the error priority (CRITICAL or NOTICE)"""
-
     def getMessage(self):
         """Returns a string indicating the exception."""
 
-    def bindProtocol(self, proto):
-        """Bind a protocol to the exception."""
+    def getProtocol(self):
+        """Returns the protocol instance this exception occured in."""

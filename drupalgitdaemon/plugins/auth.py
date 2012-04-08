@@ -89,7 +89,7 @@ class DrupalAuth(object):
 
         return service.deferred
 
-    def mayAccess(self, app, user, repository, readOnly):
+    def authorizeRepository(self, app, user, repository, readOnly):
         assert isinstance(app, Application)
         assert isinstance(user, Session)
         assert isinstance(readOnly, bool)

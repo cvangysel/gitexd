@@ -1,19 +1,20 @@
-from twisted.internet.protocol import ProcessProtocol
+from twisted.internet.interfaces import IProcessProtocol
 from twisted.plugin import IPlugin
-from twisted.python import log
 from zope.interface.declarations import implements
+from gitdaemon.protocol.error import ErrorProtocol
 from gitdaemon.interfaces import IExceptionHandler, IException
 
 class ExceptionHandler(object):
     implements(IPlugin, IExceptionHandler)
 
-    def handle(self, exception, proto = None):
+    def handle(self, exception, protocol = None):
         assert IException.providedBy(exception)
-        assert proto is None or isinstance(proto, ProcessProtocol)
+        assert IProcessProtocol.providedBy(protocol) or protocol is None
 
-        if proto is not None:
-            exception.bindProtocol(proto)
+        if protocol is None:
+            protocol = exception.getProtocol()
 
-        exception.throw()
+        errorProtocol = ErrorProtocol(str(exception))
+        errorProtocol.makeConnection(protocol)
 
 exceptionHandler = ExceptionHandler()

@@ -1,6 +1,5 @@
 from gitdaemon.interfaces import IAuth
-from gitdaemon.tests.test_daemonWorkflow import ApplicationTest
-from gitdaemon.tests.test_repositoryEncapsulation import GitTestHelper, formatRemote
+from gitdaemon.tests import ApplicationTest, formatRemote
 from gitdaemon.tests.plugins import keyAuth, passAuth
 
 __author__ = 'christophe'
@@ -28,6 +27,7 @@ class KeyAuthenticationTests(ApplicationTest):
         remoteRepository = self._test(None)
 
         def processEnded(result):
+            self.assertPermissionDenied()
             self.assertNotEqual(self.repository, remoteRepository)
 
         return self.pushRepository(self.repository).addCallback(processEnded)
@@ -36,6 +36,7 @@ class KeyAuthenticationTests(ApplicationTest):
         remoteRepository = self._test("random")
 
         def processEnded(result):
+            self.assertPermissionDenied()
             self.assertNotEqual(self.repository, remoteRepository)
 
         return self.pushRepository(self.repository).addCallback(processEnded)
@@ -44,6 +45,7 @@ class KeyAuthenticationTests(ApplicationTest):
         remoteRepository = self._test("key")
 
         def processEnded(result):
+            self.assertNoError()
             self.assertEqual(self.repository, remoteRepository)
 
         return self.pushRepository(self.repository).addCallback(processEnded)
@@ -81,6 +83,7 @@ class PasswordAuthenticationTests(ApplicationTest):
         remoteRepository = self._testSSH("random")
 
         def processEnded(result):
+            self.assertPermissionDenied()
             self.assertNotEqual(self.repository, remoteRepository)
 
         return self.pushRepository(self.repository).addCallback(processEnded)
@@ -89,6 +92,7 @@ class PasswordAuthenticationTests(ApplicationTest):
         remoteRepository = self._testHTTP("random")
 
         def processEnded(result):
+            self.assertPermissionDenied()
             self.assertNotEqual(self.repository, remoteRepository)
 
         return self.pushRepository(self.repository).addCallback(processEnded)
@@ -97,6 +101,7 @@ class PasswordAuthenticationTests(ApplicationTest):
         remoteRepository = self._testSSH("pass")
 
         def processEnded(result):
+            self.assertPermissionDenied()
             self.assertNotEqual(self.repository, remoteRepository)
 
         return self.pushRepository(self.repository, "test").addCallback(processEnded)
@@ -105,6 +110,7 @@ class PasswordAuthenticationTests(ApplicationTest):
         remoteRepository = self._testHTTP("pass")
 
         def processEnded(result):
+            self.assertPermissionDenied()
             self.assertNotEqual(self.repository, remoteRepository)
 
         return self.pushRepository(self.repository, "test").addCallback(processEnded)
@@ -113,6 +119,7 @@ class PasswordAuthenticationTests(ApplicationTest):
         remoteRepository = self._testSSH("pass")
 
         def processEnded(result):
+            self.assertNoError()
             self.assertEqual(self.repository, remoteRepository)
 
         return self.pushRepository(self.repository, "test_pass").addCallback(processEnded)
@@ -121,6 +128,7 @@ class PasswordAuthenticationTests(ApplicationTest):
         remoteRepository = self._testHTTP("pass")
 
         def processEnded(result):
+            self.assertNoError()
             self.assertEqual(self.repository, remoteRepository)
 
         return self.pushRepository(self.repository, "test_pass").addCallback(processEnded)

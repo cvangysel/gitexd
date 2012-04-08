@@ -2,23 +2,13 @@ import os
 import tempfile
 from twisted.internet import reactor
 from twisted.trial import unittest
+from drupalgitdaemon.tests import _createDrupalAuthConfigFile
 from drupalgitdaemon.tests.plugins import authentication
 from drupalgitdaemon.tests.plugins.authentication.auth import DrupalTestAuth
 from gitdaemon import Application
 from gitdaemon.interfaces import  IAuth
-from gitdaemon.tests.test_daemonWorkflow import ApplicationTest
-from gitdaemon.tests.test_subsystemPlugins import _createDefaultConfigFile
-from gitdaemon.tests.test_repositoryEncapsulation import GitTestHelper, formatRemote
-
-__author__ = 'christophe'
-
-def _createDrupalAuthConfigFile(repoPath = '', allowAnon = False):
-    defaults = {
-        "allowAnonymous": allowAnon,
-        "authServiceProtocol": "dummy"
-    }
-
-    return _createDefaultConfigFile(repoPath, defaults)
+from gitdaemon.tests import ApplicationTest, formatRemote
+from gitdaemon.tests.test_repositoryEncapsulation import GitTestHelper
 
 class AuthenticationTests(ApplicationTest):
 
@@ -90,6 +80,7 @@ class AnonymousAuthenticationTests(AuthenticationTests):
         remoteRepository = self._testHTTP()
 
         def processEnded(result):
+            self.assertNoError()
             self.assertEqual(self.repository, remoteRepository)
 
         return self.pushRepository(self.repository).addCallback(processEnded)
@@ -100,6 +91,7 @@ class AnonymousAuthenticationTests(AuthenticationTests):
         remoteRepository = self._testHTTP()
 
         def processEnded(result):
+            self.assertPermissionDenied()
             self.assertNotEqual(self.repository, remoteRepository)
 
         return self.pushRepository(self.repository).addCallback(processEnded)
@@ -118,6 +110,7 @@ class PasswordAuthenticationTests(AuthenticationTests):
         remoteRepository = self._testHTTP("test")
 
         def processEnded(result):
+            self.assertNoError()
             self.assertEqual(self.repository, remoteRepository)
 
         return self.pushRepository(self.repository, "pass").addCallback(processEnded)
@@ -128,6 +121,7 @@ class PasswordAuthenticationTests(AuthenticationTests):
         remoteRepository = self._testHTTP("test")
 
         def processEnded(result):
+            self.assertPermissionDenied()
             self.assertNotEqual(self.repository, remoteRepository)
 
         return self.pushRepository(self.repository, "invalid").addCallback(processEnded)
@@ -138,6 +132,7 @@ class PasswordAuthenticationTests(AuthenticationTests):
         remoteRepository = self._testHTTP("invalid")
 
         def processEnded(result):
+            self.assertPermissionDenied()
             self.assertNotEqual(self.repository, remoteRepository)
 
         return self.pushRepository(self.repository, "pass").addCallback(processEnded)
@@ -148,6 +143,7 @@ class PasswordAuthenticationTests(AuthenticationTests):
         remoteRepository = self._testSSH("test")
 
         def processEnded(result):
+            self.assertNoError()
             self.assertEqual(self.repository, remoteRepository)
 
         return self.pushRepository(self.repository, "pass").addCallback(processEnded)
@@ -158,6 +154,7 @@ class PasswordAuthenticationTests(AuthenticationTests):
         remoteRepository = self._testSSH("test")
 
         def processEnded(result):
+            self.assertPermissionDenied()
             self.assertNotEqual(self.repository, remoteRepository)
 
         return self.pushRepository(self.repository, "invalid").addCallback(processEnded)
@@ -168,6 +165,7 @@ class PasswordAuthenticationTests(AuthenticationTests):
         remoteRepository = self._testSSH("invalid")
 
         def processEnded(result):
+            self.assertPermissionDenied()
             self.assertNotEqual(self.repository, remoteRepository)
 
         return self.pushRepository(self.repository, "pass").addCallback(processEnded)
@@ -190,6 +188,7 @@ class KeyAuthenticationTests(AuthenticationTests):
         remoteRepository = self._testSSH("git")
 
         def processEnded(result):
+            self.assertNoError()
             self.assertEqual(self.repository, remoteRepository)
 
         return self.pushRepository(self.repository, keyFile="test").addCallback(processEnded)
@@ -200,6 +199,7 @@ class KeyAuthenticationTests(AuthenticationTests):
         remoteRepository = self._testSSH("git")
 
         def processEnded(result):
+            self.assertPermissionDenied()
             self.assertNotEqual(self.repository, remoteRepository)
 
         return self.pushRepository(self.repository, keyFile="invalid").addCallback(processEnded)
@@ -210,6 +210,7 @@ class KeyAuthenticationTests(AuthenticationTests):
         remoteRepository = self._testSSH("test")
 
         def processEnded(result):
+            self.assertNoError()
             self.assertEqual(self.repository, remoteRepository)
 
         return self.pushRepository(self.repository, keyFile="test").addCallback(processEnded)
@@ -220,6 +221,7 @@ class KeyAuthenticationTests(AuthenticationTests):
         remoteRepository = self._testSSH("test")
 
         def processEnded(result):
+            self.assertPermissionDenied()
             self.assertNotEqual(self.repository, remoteRepository)
 
         return self.pushRepository(self.repository, keyFile="invalid").addCallback(processEnded)
@@ -230,6 +232,7 @@ class KeyAuthenticationTests(AuthenticationTests):
         remoteRepository = self._testSSH("invalid")
 
         def processEnded(result):
+            self.permissionDenied
             self.assertNotEqual(self.repository, remoteRepository)
 
         return self.pushRepository(self.repository, keyFile="invalid").addCallback(processEnded)

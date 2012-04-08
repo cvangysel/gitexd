@@ -1,5 +1,6 @@
 from ConfigParser import ConfigParser
 from twisted.conch import avatar
+from twisted.conch.avatar import ConchUser
 from twisted.conch.interfaces import ISession
 from twisted.conch.ssh import  userauth, connection, keys, session
 from twisted.conch.ssh.factory import SSHFactory
@@ -8,16 +9,31 @@ from twisted.internet.protocol import ProcessProtocol
 from twisted.python import components
 from zope.interface.declarations import implements
 from gitdaemon import Object
-from gitdaemon.error import UserException
+from gitdaemon.protocol import GitProcessProtocol
+from gitdaemon.protocol.error import Error
+
+class GitProcessProtocol(GitProcessProtocol):
+
+    def write(self, data):
+        self._proto.session.write(data)
+
+    def loseConnection(self):
+        if self._proto.session is not None:
+            """"""
+            #self._proto.session.loseConnection() # This didn't work because the error made the connection close (Twisted bug)
+            #channel.SSHChannel.loseConnection(self._proto.session)
 
 class Session(object):
     implements(ISession)
 
+    class SSHShellException(Error):
+
+        def __init__(self, proto):
+            Error.__init__(self, "Hi!\nI can't open a shell for you at the moment. Sorry!\n\n", proto)
+
     def __init__(self, user):
         assert isinstance(user, ConchUser)
-
         self.user = user
-
         self._invariant()
 
     def getPty(self, term, windowSize, attrs):
@@ -37,7 +53,7 @@ class Session(object):
         assert isinstance(proto, ProcessProtocol)
         self._invariant()
 
-        self.user.app.getErrorHandler().handle(UserException("Hi!\nI can't open a shell for you at the moment. Sorry!\n\n", True, proto))
+        self.user.app.getErrorHandler().handle(SSHShellException(proto))
 
         self._invariant()
 

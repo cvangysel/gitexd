@@ -6,6 +6,23 @@ from twisted.web.server import Site
 from twisted.web.twcgi import CGIScript, CGIProcessProtocol
 from zope.interface.interface import Interface
 from gitdaemon import Object
+from gitdaemon.protocol import GitProcessProtocol
+
+class GitProcessProtocol(GitProcessProtocol):
+    """
+            Custom implementation to support error messages.
+       """
+
+    def write(self, data):
+        self._proto.request.setResponseCode(500)
+        self._proto.request.write(data)
+
+    def writeSequence(self, seq):
+        self.write(''.join(seq))
+
+    def loseConnection(self):
+        self._proto.request.unregisterProducer()
+        self._proto.request.finish()
 
 class Factory(Site):
 
@@ -42,13 +59,12 @@ class Script(CGIScript, Object):
     def runProcess(self, env, request, qargs = []):
         assert(isinstance(request, Request))
         assert(isinstance(env, dict))
-        assert(isinstance(qargs, list) or isinstance(qargs, str))
 
         self._invariant()
 
         proto = CGIProcessProtocol(request)
 
-        self.app.getRequestHandler().handle(self.app, self.app.getRequestHandler().createHTTPInvocationRequest(request, proto, self.user, env, qargs))
+        self.app.getRequestHandler().handle(self.app, self.app.getRequestHandler().createHTTPInvocationRequest(request, proto, self.user, env))
 
         self._invariant()
 

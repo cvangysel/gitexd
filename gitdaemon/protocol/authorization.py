@@ -1,6 +1,10 @@
-from twisted.internet.interfaces import IProcessProtocol, ITransport, IConsumer, IProcessTransport
-from twisted.internet.protocol import ProcessProtocol
-from zope.interface.declarations import implements
+from gitdaemon.protocol.error import GitError
+from gitdaemon.protocol.git import formatPackline
+
+class UnauthorizedException(GitError):
+
+    def __init__(self, proto):
+        GitError.__init__(self, "You don't have access to this repository.", proto)
 
 def _decodeGitList(raw):
     assert isinstance(raw, str)
@@ -22,85 +26,144 @@ def _decodeGitList(raw):
 
     return data
 
-class _AuthorizedTransportWrapper(object):
-    implements(IProcessTransport)
+def _consume(data, length):
+    assert isinstance(data, str)
 
-    def __init__(self, transport):
-        assert IProcessTransport.providedBy(transport)
+    if len(data) < length:
+        return False
 
-        self.transport = transport
-        self.data = []
+    part = data[:length]
+    data = data[length:]
 
-    def closeStdin(self):
-        self.transport.closeStdin()
+    return part, data
 
-    def closeStdout(self):
-        self.transport.closeStdout()
+def _stripHeaders(data):
+    assert isinstance(data, str)
 
-    def closeChildFD(self, descriptor):
-        self.transport.closeChildFD(descriptor)
+    striped = None
 
-    def writeToChild(self, childFd, data):
-        self.transport.writeToChild(childFd, data)
+    lastOccurence = data.rfind("\r\n")
+    if lastOccurence >= 0:
+        striped = data [:lastOccurence + 2]
+        data = data[lastOccurence + 2:]
 
-    def loseConnection(self):
-        self.transport.loseConnection()
+    return striped, data
 
-    def signalProcess(self, signalID):
-        self.transport.signalProcess(signalID)
+def _formatRequests(requests):
+    for request in requests:
+        _formatRequest(request)
 
-    def write(self, data):
-        print "RAW (sent): ", data
-
-        # Capture pushes by client
-        self.data.append(data)
-
-        if data[-4:] == "0000":
-            print "SENT (by client): ", _decodeGitList(''.join(self.data))
-            self.transport.write(''.join(self.data))
-
-            self.data = []
-
-    def writeSequence(self, data):
-        self.transport.writeSequence(data)
-
-    def getPeer(self):
-        return self.transport.getPeer()
-
-    def getHost(self):
-        return self.transport.getHost()
-
-class AuthorizedProcessProtocolWrapper(object):
-    implements(IProcessProtocol)
-    
-    def __init__(self, proto):
-        assert isinstance(proto, ProcessProtocol)
-        
-        self.proto = proto
-        self.data = []
-        
-    def makeConnection(self, process):
-        self.proto.makeConnection(_AuthorizedTransportWrapper(process))
-        
-    def childDataReceived(self, childFD, data):
-        print "RAW (received): ",data
-
-        if (data[:2] == "00"):
-            self.data.append(data)
-
-            if data[-4:] == "0000":
-                print "RECEIVED (by client): ", _decodeGitList(''.join(self.data))
-                self.proto.childDataReceived(childFD, ''.join(self.data))
-
-                self.data = []
+def _formatRequest(request):
+    for i in request:
+        if i is None:
+            yield "0000"
         else:
-            self.proto.childDataReceived(childFD, data)
-        
-    def childConnectionLost(self, childFD):
-        self.proto.childConnectionLost(childFD)
-        
-    def processExited(self, reason):
-        self.proto.processExited(reason)
+            yield formatPackline(i)
 
-    def processEnded(self, reason):
-        self.proto.processEnded(reason)
+class GitDecoder(object):
+
+    def __init__(self, name):
+        self._name = name
+
+        self._advertisement = None
+
+        self._ignore = False
+
+        self._formatted = []
+        self._decoded = []
+        self._raw = ""
+
+    def process(self, data):
+        self._raw = self._raw + data
+
+        if not self._ignore:
+            self._decoded.extend(self._decodeGit())
+
+            for x in self._process():
+                yield x
+
+        if self._ignore:
+            if len(self._raw):
+                yield self._raw
+
+                self._raw = ""
+
+    def _process(self):
+        request = []
+
+        cutOff = 0
+
+        for i in range(len(self._decoded)):
+            line = self._decoded[i]
+
+            if line == "" or line[:4] == "done":
+                value = None if not len(line) else line
+                request.append(value)
+
+                for x in self._processRequest(request):
+                    yield x
+
+                self._formatted.append(request)
+
+                request = []
+
+                cutOff = i + 1
+            else:
+                request.append(line)
+
+        self._decoded = self._decoded[cutOff:]
+
+    def _processRequest(self, request):
+        if request[0][0] == '#':
+            """"""
+        elif request[0][0] == '\x01':
+            """"""
+        elif request[0][:3] == "NAK":
+            """"""
+        elif request[0][:4] == "PACK":
+            """"""
+        elif len(request[0]) > 32:
+            #print self._name, "Advertisement", request
+            if self._advertisement is None:
+                self._advertisement = request
+                self.allowAll()
+        else:
+            """"""
+
+        for x in _formatRequest(request):
+            yield x
+
+    def _decodeGit(self):
+        data = []
+
+        while len(self._raw) > 0:
+            result = _consume(self._raw, 4)
+
+            if result:
+                length, self._raw = result
+            else:
+                break
+
+            try:
+                length = int(length, 16)
+            except ValueError:
+                self._raw = length + self._raw
+                break
+
+            if not length:
+                data.append("")
+            else:
+                result = _consume(self._raw, length - 4)
+
+                if result:
+                    line, self._raw = result
+
+                    data.append(line)
+                else:
+                    break
+
+        return data
+
+    def allowAll(self):
+        self._ignore = True
+

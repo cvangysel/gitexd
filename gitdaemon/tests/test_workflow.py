@@ -1,37 +1,9 @@
-from twisted.internet import reactor
 from twisted.trial import unittest
-from gitdaemon import Application
-from gitdaemon.tests import plugins
-from gitdaemon.tests.test_subsystemPlugins import _createDefaultConfigFile
-from gitdaemon.tests.test_repositoryEncapsulation import GitTestHelper, formatRemote
+from gitdaemon.tests import ApplicationTest, formatRemote
 from gitdaemon.interfaces import IAuth
+from gitdaemon.tests.plugins import default
 
 __author__ = 'christophe'
-
-class ApplicationTest(GitTestHelper):
-
-    def setUp(self):
-        GitTestHelper.setUp(self)
-
-        self.config = _createDefaultConfigFile(self.repoPath)
-
-        self.ssh = None
-        self.http = None
-
-    def startApplication(self, pluginPackages):
-        self.app = Application(self.config, pluginPackages)
-
-        self.ssh = reactor.listenTCP(0, self.app.createSSHFactory())
-        self.http = reactor.listenTCP(0, self.app.createHTTPFactory())
-
-    def tearDown(self):
-        if self.ssh:
-            self.ssh.stopListening()
-
-        if self.http:
-            self.http.stopListening()
-
-        GitTestHelper.tearDown(self)
 
 class ApplicationGitTests(ApplicationTest):
 
@@ -39,7 +11,7 @@ class ApplicationGitTests(ApplicationTest):
         ApplicationTest.setUp(self)
 
         self.startApplication(pluginPackages = {
-            IAuth: plugins.default
+            IAuth: default
         })
 
     def testSSHPush(self):
@@ -51,6 +23,7 @@ class ApplicationGitTests(ApplicationTest):
         self.generateComplicatedCommit()
 
         def processEnded(result):
+            self.assertNoError()
             self.assertEqual(self.repository, remoteRepository)
 
         return self.pushRepository(self.repository, "derp").addCallback(processEnded)
@@ -64,6 +37,7 @@ class ApplicationGitTests(ApplicationTest):
         self.generateComplicatedCommit()
 
         def processEnded(result):
+            self.assertNoError()
             self.assertEqual(self.repository, remoteRepository)
 
         return self.pushRepository(self.repository).addCallback(processEnded)
@@ -77,6 +51,7 @@ class ApplicationGitTests(ApplicationTest):
         self.generateComplicatedCommit(otherRepository)
 
         def processEnded(result):
+            self.assertNoError()
             self.assertEqual(self.repository, otherRepository)
 
         self.assertNotEqual(self.repository, otherRepository)
@@ -92,6 +67,7 @@ class ApplicationGitTests(ApplicationTest):
         self.generateComplicatedCommit(otherRepository)
 
         def processEnded(result):
+            self.assertNoError()
             self.assertEqual(self.repository, otherRepository)
 
         self.assertNotEqual(self.repository, otherRepository)

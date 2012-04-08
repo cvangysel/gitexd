@@ -1,6 +1,5 @@
 import json
 from drupalgitdaemon.service.protocols import IServiceProtocol
-from gitdaemon import Application
 
 class Service(object):
     """Wrapper class for requests out to external services.

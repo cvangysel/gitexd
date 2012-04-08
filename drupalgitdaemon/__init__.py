@@ -1,8 +1,15 @@
 from twisted.internet.defer import DeferredList
 from twisted.python.failure import Failure
 from zope.interface.declarations import implements
-from zope.interface.interface import Interface, Attribute
-from gitdaemon.error import GitUserException
+from zope.interface.interface import Interface
+from gitdaemon.protocol.error import GitError
+from gitdaemon.interfaces import IException
+
+class DrupalOrgAuthException(GitError):
+    implements(IException)
+
+    def __init__(self, message, proto = None):
+        GitError.__init__(self, message, proto)
 
 def getProjectName(repository):
     parts = repository.split('/')
@@ -41,6 +48,12 @@ class ISession(Interface):
     def mayAccess(self, app, repository, readOnly = False, label = None):
         """ """
 
+    def __str__():
+        #TODO Finish doc below
+        """Should return name of committer """
+
+
+# TODO Implement __str__
 class Session(object):
     implements(ISession)
 
@@ -66,13 +79,13 @@ class Session(object):
             elif isinstance(pushctlData, Failure):
                 return pushctlData
 
-            assert isinstance(authData, dict)
-            assert isinstance(pushctlData, int)
-
-            if not auth:
-                return Failure(GitUserException("Repository does not exist. Verify that your remote is correct."))
-
+            if not auth or not isinstance(authData, dict):
+                return Failure(DrupalOrgAuthException("Repository does not exist. Verify that your remote is correct."))
+            elif not isinstance(pushctlData, int):
+                return Failure(DrupalOrgAuthException("Drupal.org is having some troubles."))
             elif auth and pushctl and not readOnly:
+                # TODO PushControl also disables pulling
+
                 mask = authData["repo_group"] & pushctlData
 
                 if mask:
@@ -85,17 +98,17 @@ class Session(object):
                     if mask & 0x04:
                         error = "Pushes to sandboxes are currently disabled."
 
-                    return Failure(GitUserException(error))
+                    return Failure(DrupalOrgAuthException(error))
 
                 else:
 
                     if not authData["status"]:
-                        return Failure(GitUserException("Project {0} has been disabled".format(authData['repository_name'])))
+                        return Failure(DrupalOrgAuthException("Project {0} has been disabled".format(authData['repository_name'])))
 
                     user = _mapUser(authData["users"], self._username, self._password, self._fingerprint)
 
                     if user is None:
-                        return Failure(GitUserException("User '{1}' does not have write permissions for repository {0}".format(authData['repository_name'], self._username)))
+                        return Failure(DrupalOrgAuthException("User '{1}' does not have write permissions for repository {0}".format(authData['repository_name'], self._username)))
                     elif not user["global"]:
                         return True
                     else:
@@ -119,7 +132,7 @@ class Session(object):
                             else:
                                 error.append("This operation cannot be completed at this time.  It may be that we are experiencing technical difficulties or are currently undergoing maintenance.")
 
-                        return Failure(GitUserException("\n".join(error)))
+                        return Failure(DrupalOrgAuthException("\n".join(error)))
             else:
                 # All repositories are publicly readable.
                 return True
@@ -151,4 +164,5 @@ class AnonymousSession(object):
         self.service = service
 
     def mayAccess(self, app, repository, readOnly = False, label = None):
+        # TODO Implement
         return readOnly

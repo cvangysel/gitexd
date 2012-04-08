@@ -1,8 +1,16 @@
 import os
 import subprocess
+from gitdaemon.protocol.error import GitError
 
-def _findExecuteable(executable):
-    #TODO Check this
+class UnexistingRepositoryException(GitError):
+
+    def __init__(self, proto):
+        GitError.__init__(self, "The specified repository doesn't exist.", proto)
+
+def formatPackline(line):
+    return "{0:04x}{1}".format(len(line) + 4, line)
+
+def _findExecutable(executable):
     path = os.environ.get("PATH", os.defpath)
 
     fullPath = None
@@ -19,16 +27,12 @@ def _findExecuteable(executable):
 
     return fullPath
 
-def findGitShell():
-    return _findExecuteable("git-shell")
-
-def findGitHTTPBackend():
-    # TODO Fix this
-    return "/usr/lib/git-core/git-http-backend"
+def getGit():
+    return _findExecutable("git")
 
 class Repository(object):
 
-    pathToGit = _findExecuteable("git")
+    git = getGit()
 
     def __init__(self, path):
         assert isinstance(path, str)
@@ -67,7 +71,7 @@ class Repository(object):
 
         arguments = Repository.getGitCommand(command, arg)
 
-        output = subprocess.check_output([self.pathToGit] + arguments, stderr=subprocess.STDOUT, cwd=self.path)
+        output = subprocess.check_output([self.git] + arguments, stderr=subprocess.STDOUT, cwd=self.path)
 
         assert isinstance(output, str)
         self._invariant()
@@ -194,7 +198,7 @@ class Repository(object):
 
     def _invariant(self):
         assert isinstance(self.path, str)
-        assert os.path.exists(self.pathToGit)
+        assert os.path.exists(self.git)
         assert isinstance(self.bare, bool)
 
     def __eq__(self, other):

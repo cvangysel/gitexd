@@ -95,6 +95,6 @@ class HTTPServiceProtocol(object):
         for a in args:
             arguments.update(a)
         url_arguments = self.command + "?" + urllib.urlencode(arguments)
-        constructed_url = urlparse.urljoin(self.config.get("http", "serviceUrl"), url_arguments)
-        self.deferred = getPage(constructed_url, headers=self.config.get("http", "headers"))
+        constructed_url = urlparse.urljoin(self.config.get("DEFAULT", "serviceUrl"), url_arguments)
+        self.deferred = getPage(constructed_url, headers=self.config.get("DEFAULT", "headers"))
         self.deferred.addErrback(self.http_request_error)

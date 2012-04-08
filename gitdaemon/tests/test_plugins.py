@@ -1,22 +1,9 @@
-from ConfigParser import ConfigParser
-import os
 from twisted.internet import reactor
 from twisted.trial import unittest
 from gitdaemon import Application, interfaces
 from gitdaemon.interfaces import IInvocationRequestHandler
-from gitdaemon.tests import plugins
+from gitdaemon.tests import plugins, _createDefaultConfigFile
 from gitdaemon.tests.plugins.default.default import StubInvocationRequestHandler
-
-def _createDefaultConfigFile(repoPath = '', defaults = {}):
-    keyPath = os.path.dirname(__file__) + "/example-key"
-
-    config = ConfigParser(dict({
-        "privateKeyLocation": keyPath + "/key",
-        "publicKeyLocation": keyPath + "/key.pub",
-        'repositoryPath': repoPath
-    }.items() + defaults.items()))
-
-    return config
 
 class ApplicationPluginTests(unittest.TestCase):
 
