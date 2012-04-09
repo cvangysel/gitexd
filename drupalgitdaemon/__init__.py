@@ -2,6 +2,8 @@ from twisted.internet.defer import DeferredList
 from twisted.python.failure import Failure
 from zope.interface.declarations import implements
 from zope.interface.interface import Interface
+from gitdaemon import Application
+from gitdaemon.protocol import PULL, PUSH
 from gitdaemon.protocol.error import GitError
 from gitdaemon.interfaces import IException
 
@@ -52,13 +54,14 @@ class ISession(Interface):
         #TODO Finish doc below
         """Should return name of committer """
 
-
-# TODO Implement __str__
 class Session(object):
     implements(ISession)
 
-    def __init__(self, authService, pushctlService, data):
+    def __init__(self, app, authService, pushctlService, data):
+        assert isinstance(app, Application)
         assert isinstance(data, dict)
+
+        self._app = app
 
         self._username = data["username"] if data.has_key("username") else None
         self._password = data["password"] if data.has_key("password") else None
@@ -67,7 +70,7 @@ class Session(object):
         self._authService = authService
         self._pushctlService = pushctlService
 
-    def mayAccess(self, app, repository, readOnly = False, label = None):
+    def mayAccess(self, repository, requestType):
 
         def _authCallback(data):
             auth, pushctl = data
@@ -83,7 +86,7 @@ class Session(object):
                 return Failure(DrupalOrgAuthException("Repository does not exist. Verify that your remote is correct."))
             elif not isinstance(pushctlData, int):
                 return Failure(DrupalOrgAuthException("Drupal.org is having some troubles."))
-            elif auth and pushctl and not readOnly:
+            elif auth and pushctl and requestType == PUSH:
                 # TODO PushControl also disables pulling
 
                 mask = authData["repo_group"] & pushctlData
@@ -157,12 +160,21 @@ class Session(object):
 
         return d
 
+    def __str__(self):
+        if self._username is not None:
+            return self._username
+        else:
+            return "anonymous"
+
 class AnonymousSession(object):
     implements(ISession)
 
-    def __init__(self, service):
-        self.service = service
+    def __init__(self, app, service):
+        self._app = app
+        self._service = service
 
-    def mayAccess(self, app, repository, readOnly = False, label = None):
-        # TODO Implement
-        return readOnly
+    def mayAccess(self, repository, requestType):
+        return requestType == PULL
+
+    def __str__(self):
+        return "anonymous"

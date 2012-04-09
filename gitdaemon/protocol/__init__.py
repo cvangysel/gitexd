@@ -3,6 +3,8 @@ from twisted.internet.protocol import ProcessProtocol
 from zope.interface import implements
 from gitdaemon.protocol.authorization import GitDecoder, _stripHeaders
 
+PUSH, PULL = range(0, 2)
+
 class GitProcessProtocol(object):
     implements(IProcessProtocol, ITransport)
 

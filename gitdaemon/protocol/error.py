@@ -3,8 +3,6 @@ from twisted.internet.interfaces import ITransport, IProcessProtocol
 from zope.interface.declarations import implements
 from gitdaemon.interfaces import IException
 
-CRITICAL, NOTICE = range(0, 2)
-
 class Error(Exception):
     implements(IException)
 

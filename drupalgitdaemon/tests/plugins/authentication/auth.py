@@ -12,7 +12,7 @@ from gitdaemon.interfaces import IAuth
 class DrupalTestAuth(auth.DrupalTestAuth):
     implements(IPlugin, IAuth)
 
-    def authorizeRepository(self, app, user, repository, readOnly):
+    def authorizeRepository(self, user, repository, readOnly):
         """
                     Whether or not the user may access the repository
 

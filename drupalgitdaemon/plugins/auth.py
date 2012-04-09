@@ -9,6 +9,7 @@ from drupalgitdaemon.service.protocols import HTTPServiceProtocol
 from gitdaemon import Application
 from gitdaemon.interfaces import IAuth
 import hashlib
+from gitdaemon.protocol import PUSH, PULL
 
 class DrupalAuth(object):
     implements(IPlugin, IAuth)
@@ -26,7 +27,7 @@ class DrupalAuth(object):
             authService = Service(self.protocol(app.getConfig(), 'vcs-auth-data'))
             pushctlService = Service(self.protocol(app.getConfig(), 'pushctl-state'))
 
-            return Session(authService, pushctlService, data)
+            return Session(app, authService, pushctlService, data)
         else:
             return None
 
@@ -36,7 +37,7 @@ class DrupalAuth(object):
         if app.getConfig().get("DEFAULT", "allowAnonymous", True):
             service = Service(self.protocol(app.getConfig(), 'vcs-auth-data'))
 
-            return defer.succeed(AnonymousSession(service))
+            return defer.succeed(AnonymousSession(app, service))
         else:
             return defer.succeed(None)
 
@@ -89,14 +90,11 @@ class DrupalAuth(object):
 
         return service.deferred
 
-    def authorizeRepository(self, app, user, repository, readOnly):
-        assert isinstance(app, Application)
+    def authorizeRepository(self, user, repository, requestType):
         assert isinstance(user, Session)
-        assert isinstance(readOnly, bool)
+        assert requestType in (PULL, PUSH)
 
-        """Whether or not the user may access the repository"""
-
-        return user.mayAccess(app, repository, readOnly)
+        return user.mayAccess(repository, requestType)
 
     def _invariant(self):
         assert IServiceProtocol.implementedBy(self._protocol)

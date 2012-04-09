@@ -1,3 +1,6 @@
+from twisted.internet import reactor
+from twisted.internet.interfaces import IProcessProtocol
+from twisted.python.failure import Failure
 from gitdaemon.protocol.error import GitError
 from gitdaemon.protocol.git import formatPackline
 
@@ -5,6 +8,35 @@ class UnauthorizedException(GitError):
 
     def __init__(self, proto):
         GitError.__init__(self, "You don't have access to this repository.", proto)
+
+def authorizationErrorHandler(fail, app, proto):
+    # TODO Possibly combine with authenticationErrorHandler
+    from gitdaemon import Application
+
+    assert isinstance(fail, Failure)
+    assert isinstance(app, Application)
+    assert IProcessProtocol.providedBy(proto)
+
+    r = fail.trap(GitError, NotImplementedError, Exception)
+
+    if r == GitError:
+        """Pass to the ExceptionHandler"""
+
+        app.getErrorHandler().handle(fail.value, proto)
+    elif r == NotImplementedError:
+        """NotImplemented, sometimes used for testing."""
+
+        print fail
+
+        fail.printTraceback()
+        reactor.stop()
+    else:
+        """Unknown exception, halt excecution."""
+
+        print fail
+
+        fail.printTraceback()
+        reactor.stop()
 
 def _decodeGitList(raw):
     assert isinstance(raw, str)

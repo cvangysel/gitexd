@@ -4,113 +4,118 @@ from twisted.internet.defer import maybeDeferred
 from twisted.internet.interfaces import IProcessProtocol
 from twisted.internet.protocol import ProcessProtocol
 from twisted.plugin import IPlugin
-from twisted.python.failure import Failure
 from twisted.web.http import Request
 from gitdaemon import Application
-from gitdaemon.protocol.error import  GitError
 from gitdaemon.protocol.git import UnexistingRepositoryException, getGit
 from zope.interface import implements
 from gitdaemon.interfaces import IInvocationRequest, IInvocationRequestHandler
-from gitdaemon.protocol import ssh, http
+from gitdaemon.protocol import ssh, http, PUSH, PULL, authorization
 from gitdaemon.protocol.authorization import  UnauthorizedException
 
 class InvocationRequest(object):
 
-    git = getGit()
+    GIT = getGit()
 
-    def __init__(self, proto, user, env = {}):
-        self.user = user
-        self.env = env
-        self.repoPath = []
+    def __init__(self, request, repositoryPath, protocol, session, environmentVariables = {}):
+        self._request = request
+        self._repositoryPath = repositoryPath
+        self._protocol = protocol
+        self._authenticationSession = session
+        self._environmentVariables = environmentVariables
 
         self._invariant()
 
     def getProtocol(self):
         self._invariant()
 
-        return self.proto
+        return self._protocol
     
     def getRepositoryPath(self):
         self._invariant()
 
-        return self.repoPath
+        return self._repositoryPath
 
-    def getUser(self):
+    def getSession(self):
         self._invariant()
 
-        return self.user
+        return self._authenticationSession
+
+    def getType(self):
+        # Assume dumb version of protocol (read-only)
+        return PULL
 
     def _invariant(self):
-        assert IProcessProtocol.providedBy(self.proto)
-        assert isinstance(self.repoPath, list)
-        assert isinstance(self.env, dict)
+        assert IProcessProtocol.providedBy(self._protocol)
+        assert isinstance(self._repositoryPath, list)
+        assert isinstance(self._environmentVariables, dict)
+        assert self.getType() in (PUSH, PULL)
 
 class HTTPInvocationRequest(InvocationRequest):
     implements(IInvocationRequest)
 
-    def __init__(self, request, proto, user, env = {}):
+    def __init__(self, request, protocol, session, environmentVariables = {}):
         assert isinstance(request, Request)
-        assert isinstance(proto, ProcessProtocol)
+        assert isinstance(protocol, ProcessProtocol)
 
-        self.proto = http.GitProcessProtocol(proto)
+        protocol = http.GitProcessProtocol(protocol)
+        repositoryPath = request.prepath[:-1]
 
-        self.request = request
-        InvocationRequest.__init__(self, proto, user, env)
-        self.repoPath = request.prepath[:-1]
+        InvocationRequest.__init__(self, request, repositoryPath, protocol, session, environmentVariables)
+
         self._invariant()
 
-    def invocate(self, repository):
+    def finish(self, repository):
         assert isinstance(repository, str)
 
         self._invariant()
 
-        # TODO Fix this, especially the REMOTE_USER env var
-        self.env['SCRIPT_FILENAME'] = self.git
+        self._environmentVariables['SCRIPT_FILENAME'] = self.GIT
+        self._environmentVariables['GIT_PROJECT_ROOT'] = repository
+        self._environmentVariables['PATH_INFO'] = "/" + "/".join(self._request.prepath[-1:])
+        self._environmentVariables['REMOTE_USER'] = str(self._authenticationSession)
+        self._environmentVariables['GIT_HTTP_EXPORT_ALL'] = '1'
 
-        self.env['GIT_PROJECT_ROOT'] = repository
-        self.env['PATH_INFO'] = "/" + "/".join(self.request.prepath[-1:])
-
-        self.env['REMOTE_USER'] = str(self.user)
-
-        self.env['GIT_HTTP_EXPORT_ALL'] = '1'
-
-        reactor.spawnProcess(self.proto, self.git, (self.git, 'http-backend'), self.env)
+        reactor.spawnProcess(self._protocol, self.GIT, (self.GIT, 'http-backend'), self._environmentVariables)
 
         self._invariant()
 
+    def getType(self):
+        return PUSH if self._request.prepath[-1:] == "git-receive-pack" else PULL
+
     def _invariant(self):
         InvocationRequest._invariant(self)
-        assert isinstance(self.request, Request)
+        assert isinstance(self._request, Request)
 
 class SSHInvocationRequest(InvocationRequest):
     implements(IInvocationRequest)
 
-    def __init__(self, request, proto, user):
-        assert isinstance(proto, ProcessProtocol)
+    def __init__(self, request, protocol, session):
+        assert isinstance(protocol, ProcessProtocol)
 
-        self.proto = ssh.GitProcessProtocol(proto)
+        request = shlex.split(request)
+        repositoryPath = filter(None, request[-1].split('/'))
+        protocol = ssh.GitProcessProtocol(protocol)
 
-        argv = shlex.split(request)
-        self.command = argv[0]
-        InvocationRequest.__init__(self, proto, user);
-        self.repoPath = filter(None, argv[-1].split('/'))
+        InvocationRequest.__init__(self, request, repositoryPath, protocol, session)
+
         self._invariant()
 
-    def invocate(self, repository):
+    def finish(self, repository):
         assert isinstance(repository, str)
+        self._invariant()
+
+        command = self._request[0] + " '{0}'".format(repository)
+
+        reactor.spawnProcess(self._protocol, self.GIT, (self.GIT, 'shell', '-c', command), self._environmentVariables)
 
         self._invariant()
 
-        env = {}
-        command = self.command + ' ' + "'{0}'".format(repository)
-
-        reactor.spawnProcess(self.proto, self.git, (self.git, 'shell', '-c', command), env)
-
-        self._invariant()
+    def getType(self):
+        return PUSH if self._request[0] == "git-receive-pack" else PULL
 
     def _invariant(self):
         InvocationRequest._invariant(self)
-        assert isinstance(self.command, str)
+        assert isinstance(self._request, list)
 
 class InvocationRequestHandler(object):
     implements(IPlugin, IInvocationRequestHandler)
@@ -125,30 +130,9 @@ class InvocationRequestHandler(object):
         """Callback for the dereferred returned by the authorization subsystem."""
 
         if result:
-            request.invocate(repository)
+            request.finish(repository)
         else:
             app.getErrorHandler().handle(UnauthorizedException("You don't have access to this repository."))
-
-    def _errorHandler(self, fail, app, proto):
-        #TODO Fix this; also look at authentication stuff
-
-        assert isinstance(fail, Failure)
-        assert isinstance(app, Application)
-        assert IProcessProtocol.providedBy(proto)
-
-        r = fail.trap(GitError, NotImplementedError, Exception)
-
-        if r == GitError:
-            """Pass to the ExceptionHandler"""
-
-            app.getErrorHandler().handle(fail.value, proto)
-        elif r == NotImplementedError:
-            """Unknown exception, halt excecution"""
-
-            fail.printTraceback()
-            reactor.stop()
-        else:
-            reactor.stop()
 
     def handle(self, app, request):
         assert isinstance(app, Application)
@@ -157,16 +141,12 @@ class InvocationRequestHandler(object):
         repository = app.getRepositoryRouter().route(app, request.getRepositoryPath())
 
         if repository is not None:
-            # mayAccess can return a deferred that returns a value or just return a value
+            # authorizeRepository can return a deferred that returns a value or just return a value
             # many authorization requests go to another subsystem first
 
-            # TODO If the AuthorizationProtocol wrapper is completed, integrate it more in the Request objects
-            # TODO so we can extract a list of labels the request affects.
-            d = maybeDeferred(app.getAuth().authorizeRepository, app, request.getUser(), repository, False)
-
+            d = maybeDeferred(app.getAuth().authorizeRepository, request.getSession(), repository, request.getType())
             d.addCallback(self._authorizationCallback, app, request, repository)
-
-            d.addErrback(self._errorHandler, app, request.getProtocol())
+            d.addErrback(authorization.authorizationErrorHandler, app, request.getProtocol())
         else:
             app.getErrorHandler().handle(UnexistingRepositoryException(request.getProtocol()))
 

@@ -1,3 +1,7 @@
+"""
+    Fix me.
+"""
+
 from ConfigParser import ConfigParser
 from twisted.conch import avatar
 from twisted.conch.avatar import ConchUser
@@ -20,6 +24,7 @@ class GitProcessProtocol(GitProcessProtocol):
     def loseConnection(self):
         if self._proto.session is not None:
             """"""
+            # TODO Fix me
             #self._proto.session.loseConnection() # This didn't work because the error made the connection close (Twisted bug)
             #channel.SSHChannel.loseConnection(self._proto.session)
 

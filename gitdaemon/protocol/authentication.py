@@ -1,4 +1,3 @@
-from defer import Deferred
 from exceptions import NotImplementedError
 from twisted.conch.error import ValidPublicKey
 from twisted.conch.interfaces import IConchUser
@@ -8,10 +7,8 @@ from twisted.cred.checkers import ICredentialsChecker
 from twisted.cred.credentials import ISSHPrivateKey, IUsernamePassword, IAnonymous, ICredentials
 from twisted.cred.error import UnauthorizedLogin
 from twisted.internet import defer, reactor
-from twisted.internet.protocol import ProcessProtocol
 from twisted.python import log
 from twisted.python.failure import Failure
-from twisted.python.log import err
 from twisted.web.resource import IResource
 
 import gitdaemon
@@ -20,6 +17,26 @@ from zope.interface import implements
 from gitdaemon.protocol.http import Script
 from gitdaemon.protocol.ssh import ConchUser
 
+def authenticationErrorHandler(fail):
+    # TODO Possibly combine with authorizationErrorHandler
+    assert isinstance(fail, Failure)
+
+    r = fail.trap(UnauthorizedLogin, ValidPublicKey, NotImplementedError, Exception)
+
+    if r == UnauthorizedLogin:
+        fail.trap(Failure)
+    elif r == ValidPublicKey:
+        """Ignore."""
+    elif r == NotImplementedError:
+        """NotImplemented, sometimes used for testing."""
+
+        fail.printTraceback()
+        reactor.stop()
+    else:
+        """Unknown exception, halt excecution."""
+
+        fail.printTraceback()
+        reactor.stop()
 
 class CredentialsChecker(gitdaemon.Object):
 
@@ -33,23 +50,6 @@ class CredentialsChecker(gitdaemon.Object):
             return Failure(UnauthorizedLogin())
         else:
             return result
-
-    def errorHandler(self, fail):
-        #TODO Fix this
-        self._invariant()
-        assert isinstance(fail, Failure)
-
-        r = fail.trap(UnauthorizedLogin, ValidPublicKey, NotImplementedError)
-
-        if r == UnauthorizedLogin:
-            fail.trap(Failure)
-        elif r == NotImplementedError:
-            # Unknown error, stop execution
-
-            print fail.value
-
-            fail.printTraceback()
-            reactor.stop()
 
 class PublicKeyChecker(CredentialsChecker):
     implements(ICredentialsChecker)
@@ -84,7 +84,7 @@ class PublicKeyChecker(CredentialsChecker):
         d = defer.maybeDeferred(self.app.getAuth().authenticateKey, self.app, credentials)
         d.addCallback(self.authCallback, credentials)
 
-        d.addErrback(self.errorHandler)
+        d.addErrback(authenticationErrorHandler)
 
         assert isinstance(d, defer.Deferred)
 
@@ -102,7 +102,7 @@ class PasswordChecker(CredentialsChecker):
         d = defer.maybeDeferred(self.app.getAuth().authenticatePassword, self.app, credentials)
         d.addCallback(self.authCallback, credentials)
 
-        d.addErrback(self.errorHandler)
+        d.addErrback(authenticationErrorHandler)
 
         assert isinstance(d, defer.Deferred)
 
@@ -120,7 +120,7 @@ class AnonymousChecker(CredentialsChecker):
         d = defer.maybeDeferred(self.app.getAuth().allowAnonymousAccess, self.app)
         d.addCallback(self.authCallback, credentials)
 
-        d.addErrback(self.errorHandler)
+        d.addErrback(authenticationErrorHandler)
 
         assert isinstance(d, defer.Deferred)
 

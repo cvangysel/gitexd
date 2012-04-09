@@ -21,7 +21,7 @@ class StubInvocationRequest(object):
     def getUser(self):
         return self.user
 
-    def invocate(self, repository):
+    def finish(self, repository):
         pass
 
 class StubInvocationRequestHandler(object):
@@ -30,7 +30,7 @@ class StubInvocationRequestHandler(object):
     """The main invocation logic when handling a Git request"""
 
     def handle(self, app, request):
-        request.invocate(None)
+        request.finish(None)
 
     def createHTTPInvocationRequest(self, request, proto, user, env, qargs = {}):
         request = StubInvocationRequest(request, proto, user, env, qargs)
@@ -78,7 +78,7 @@ class Auth(object):
         else:
             return None
 
-    def authorizeRepository(self, app, user, repository, readOnly):
+    def authorizeRepository(self, user, repository, readOnly):
         """Whether or not the user may access the repository"""
 
         return True

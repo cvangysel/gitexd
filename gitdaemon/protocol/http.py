@@ -1,3 +1,7 @@
+"""
+    Fix me.
+"""
+
 import copy
 from twisted.web._auth.basic import BasicCredentialFactory
 from twisted.web._auth.wrapper import HTTPAuthSessionWrapper
@@ -27,7 +31,6 @@ class GitProcessProtocol(GitProcessProtocol):
 class Factory(Site):
 
     def __init__(self, portal, config):
-        # TODO might want to use DigestCredentialFactory here
         Site.__init__(self, HTTPAuthSessionWrapper(portal, [BasicCredentialFactory("GitDaemon")]))
 
     def getResourceFor(self, request):

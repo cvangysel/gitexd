@@ -24,7 +24,7 @@ class Auth(object):
 
         return defer.succeed(True)
 
-    def authorizeRepository(self, app, user, repository, readOnly):
+    def authorizeRepository(self, user, repository, readOnly):
         """Whether or not the user may access the repository"""
 
         return True

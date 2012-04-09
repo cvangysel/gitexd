@@ -26,7 +26,7 @@ class Auth(object):
         else:
             return None
 
-    def authorizeRepository(self, app, user, repository, readOnly):
+    def authorizeRepository(self, user, repository, readOnly):
         """Whether or not the user may access the repository"""
 
         return True
