@@ -41,22 +41,41 @@ and deploy your application using *.tac* files and *twistd*.
 	:mod:`gitdaemon` makes extensive use of the *assert* statement and this can potentially slow down your application.
 	
 Implementing your own plugin packages
-=====================================
+-------------------------------------
 
 .. automodule:: gitdaemon.interfaces
 
+Authentication and Authorization
+++++++++++++++++++++++++++++++++
+
 .. autointerface:: IAuth
 	:members:
+	
+Repository Routing
+++++++++++++++++++
+
 .. autointerface:: IRepositoryRouter
 	:members:
+	
+Exception Handling
+++++++++++++++++++
+
 .. autointerface:: IExceptionHandler
 	:members:
+	
+Request Handling
+++++++++++++++++
+
 .. autointerface:: IInvocationRequestHandler
 	:members:
 	
 About the protocols
 -------------------
 
+The `SSH` transport protocol
+++++++++++++++++++++++++++++
 .. automodule:: gitdaemon.protocol.ssh
 
-.. auotmodule:: gitdaemon.protocol.http
+The `HTTP` transport protocol
++++++++++++++++++++++++++++++
+.. automodule:: gitdaemon.protocol.http
