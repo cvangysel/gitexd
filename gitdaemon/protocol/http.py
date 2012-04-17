@@ -3,9 +3,9 @@
 """
 
 import copy
+from twisted.web import http, resource
 from twisted.web._auth.basic import BasicCredentialFactory
 from twisted.web._auth.wrapper import HTTPAuthSessionWrapper
-from twisted.web.http import Request
 from twisted.web.server import Site
 from twisted.web.twcgi import CGIScript, CGIProcessProtocol
 from zope.interface.interface import Interface
@@ -17,14 +17,18 @@ class GitProcessProtocol(GitProcessProtocol):
             Custom implementation to support error messages.
        """
 
-    def write(self, data):
-        self._proto.request.setResponseCode(500)
-        self._proto.request.write(data)
+    def die(self, message):
+        if self._processTransport is None:
+            self._proto.request.setResponseCode(500)
+            self._proto.request.unregisterProducer()
+            self._proto.request.finish()
+        else:
+            self._die()
 
-    def writeSequence(self, seq):
-        self.write(''.join(seq))
+    def processEnded(self, reason):
+        if self._dead:
+            self._proto.request.write(resource.ErrorPage(http.INTERNAL_SERVER_ERROR, "CGI Script Error", "There was an error.").render(self._proto.request))
 
-    def loseConnection(self):
         self._proto.request.unregisterProducer()
         self._proto.request.finish()
 
@@ -51,6 +55,7 @@ class Script(CGIScript, Object):
     def __init__(self, app, user):
         self.user = user
 
+
         Object.__init__(self, app)
         CGIScript.__init__(self, None)
 
@@ -60,14 +65,14 @@ class Script(CGIScript, Object):
         raise NotImplementedError()
 
     def runProcess(self, env, request, qargs = []):
-        assert(isinstance(request, Request))
+        assert(isinstance(request, http.Request))
         assert(isinstance(env, dict))
 
         self._invariant()
 
         proto = CGIProcessProtocol(request)
 
-        self.app.getRequestHandler().handle(self.app, self.app.getRequestHandler().createHTTPInvocationRequest(request, proto, self.user, env))
+        self.app.getRequestHandler().handle(self.app, self.app.getRequestHandler().createHTTPRequest(self.app, request, proto, self.user, env))
 
         self._invariant()
 

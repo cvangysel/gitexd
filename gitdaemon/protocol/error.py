@@ -10,7 +10,7 @@ class Error(Exception):
         Exception.__init__(self)
 
         assert isinstance(message, str)
-        assert proto is None or IProcessProtocol.providedBy(self._proto)
+        assert proto is None or IProcessProtocol.providedBy(proto)
 
         self._message = message
         self._proto = proto
@@ -46,8 +46,7 @@ class ErrorProtocol(protocol.Protocol):
         self._message = message
 
     def connectionMade(self):
-        if ITransport.providedBy(self.transport):
-            self.transport.write(self._message)
+        from gitdaemon.protocol import GitProcessProtocol
 
-            if self.transport is not None:
-                self.transport.loseConnection()
+        if isinstance(self.transport, GitProcessProtocol):
+            self.transport.die(self._message)

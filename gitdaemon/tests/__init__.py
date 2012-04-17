@@ -241,3 +241,34 @@ def _createDefaultConfigFile(repoPath = '', defaults = {}):
     }.items() + defaults.items()))
 
     return config
+
+
+class AuthenticationTest(ApplicationTest):
+
+    def _testPush(self, user, HTTP = False):
+        self.repository.initialize()
+
+        remoteRepository = self.createTemporaryRepository(None, self.repository.path, True)
+
+        if HTTP:
+            self.repository.addRemote("origin", formatRemote("http", self.http, remoteRepository.path.split('/')[-1], user))
+        else:
+            self.repository.addRemote("origin", formatRemote("ssh", self.ssh, remoteRepository.path.split('/')[-1], user))
+
+        self.generateComplicatedCommit()
+
+        return remoteRepository
+
+    def _testPull(self, user, HTTP = False):
+        self.repository.initialize()
+
+        remoteRepository = self.createTemporaryRepository(None, self.repository.path, False)
+
+        if HTTP:
+            self.repository.addRemote("origin", formatRemote("http", self.http, remoteRepository.path.split('/')[-1], user))
+        else:
+            self.repository.addRemote("origin", formatRemote("ssh", self.ssh, remoteRepository.path.split('/')[-1], user))
+
+        self.generateComplicatedCommit(remoteRepository)
+
+        return remoteRepository

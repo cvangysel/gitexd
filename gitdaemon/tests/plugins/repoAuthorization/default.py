@@ -1,9 +1,11 @@
+from twisted.cred.credentials import IUsernamePassword, ISSHPrivateKey
 from twisted.internet import defer
 from twisted.plugin import IPlugin
 from twisted.python.failure import Failure
 from zope.interface.declarations import implements
-from gitdaemon.protocol.error import GitError
 from gitdaemon.interfaces import IAuth
+from gitdaemon.protocol import PUSH, PULL
+from gitdaemon.protocol.error import GitError
 from gitdaemon.tests.plugins.default.default import UserStub, IUserStub
 
 class Auth(object):
@@ -15,13 +17,20 @@ class Auth(object):
         return defer.succeed(UserStub())
 
     def authenticateKey(self, app, credentials):
+        assert ISSHPrivateKey.providedBy(credentials)
+
         return defer.succeed(UserStub())
 
     def authenticatePassword(self, app, credentials):
-        return defer.succeed(UserStub())
+        assert IUsernamePassword.providedBy(credentials)
 
-    def authorizeRepository(self, user, repository, readOnly):
-        return Failure(GitError("Hello world"))
+        return False
+
+    def authorizeRepository(self, user, repository, requestType):
+        if requestType != PUSH:
+            return Failure(GitError("Only PUSH requests are supported."))
+        else:
+            return True
 
     def authorizeReferences(self, session, refs, requestType):
         return True

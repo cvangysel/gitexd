@@ -18,15 +18,11 @@ from gitdaemon.protocol.error import Error
 
 class GitProcessProtocol(GitProcessProtocol):
 
-    def write(self, data):
-        self._proto.session.write(data)
+    def die(self, message):
+        self._proto.session.write(message)
 
-    def loseConnection(self):
-        if self._proto.session is not None:
-            """"""
-            # TODO Fix me
-            #self._proto.session.loseConnection() # This didn't work because the error made the connection close (Twisted bug)
-            #channel.SSHChannel.loseConnection(self._proto.session)
+        if self._processTransport is not None:
+            self._die()
 
 class Session(object):
     implements(ISession)
@@ -49,7 +45,7 @@ class Session(object):
         assert(isinstance(cmd, str))
         self._invariant()
 
-        self.user.app.getRequestHandler().handle(self.user.app, self.user.app.getRequestHandler().createSSHInvocationRequest(cmd, proto, self.user.getAuthUser()))
+        self.user.app.getRequestHandler().handle(self.user.app, self.user.app.getRequestHandler().createSSHRequest(self.user.app, cmd, proto, self.user.getAuthUser()))
 
         assert proto.errConnectionLost() is None
         self._invariant()

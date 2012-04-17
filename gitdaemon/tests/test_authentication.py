@@ -1,10 +1,10 @@
 from gitdaemon.interfaces import IAuth
-from gitdaemon.tests import ApplicationTest, formatRemote
+from gitdaemon.tests import ApplicationTest, formatRemote, AuthenticationTest
 from gitdaemon.tests.plugins import keyAuth, passAuth
 
 __author__ = 'christophe'
 
-class KeyAuthenticationTests(ApplicationTest):
+class KeyAuthenticationTests(AuthenticationTest):
 
     def setUp(self):
         ApplicationTest.setUp(self)
@@ -13,18 +13,8 @@ class KeyAuthenticationTests(ApplicationTest):
             IAuth: keyAuth
         })
 
-    def _test(self, user):
-        self.repository.initialize()
-
-        remoteRepository = self.createTemporaryRepository(None, self.repository.path, True)
-
-        self.repository.addRemote("origin", formatRemote("ssh", self.ssh, remoteRepository.path.split('/')[-1], user))
-        self.generateComplicatedCommit()
-
-        return remoteRepository
-
     def testAnonymous(self):
-        remoteRepository = self._test(None)
+        remoteRepository = self._testPush(None)
 
         def processEnded(result):
             self.assertPermissionDenied()
@@ -33,7 +23,7 @@ class KeyAuthenticationTests(ApplicationTest):
         return self.pushRepository(self.repository).addCallback(processEnded)
 
     def testInvalidUser(self):
-        remoteRepository = self._test("random")
+        remoteRepository = self._testPush("random")
 
         def processEnded(result):
             self.assertPermissionDenied()
@@ -42,7 +32,7 @@ class KeyAuthenticationTests(ApplicationTest):
         return self.pushRepository(self.repository).addCallback(processEnded)
 
     def testValidUser(self):
-        remoteRepository = self._test("key")
+        remoteRepository = self._testPush("key")
 
         def processEnded(result):
             self.assertNoError()
@@ -50,7 +40,7 @@ class KeyAuthenticationTests(ApplicationTest):
 
         return self.pushRepository(self.repository).addCallback(processEnded)
 
-class PasswordAuthenticationTests(ApplicationTest):
+class PasswordAuthenticationTests(AuthenticationTest):
 
     def setUp(self):
         ApplicationTest.setUp(self)

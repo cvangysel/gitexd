@@ -4,26 +4,27 @@ from twisted.internet.defer import maybeDeferred
 from twisted.internet.interfaces import IProcessProtocol
 from twisted.internet.protocol import ProcessProtocol
 from twisted.plugin import IPlugin
-from twisted.web.http import Request
-from gitdaemon import Application
+from twisted.python.failure import Failure
+import twisted
+from gitdaemon import Application, Object
 from gitdaemon.protocol.git import UnexistingRepositoryException, getGit
 from zope.interface import implements
-from gitdaemon.interfaces import IInvocationRequest, IInvocationRequestHandler
+from gitdaemon.interfaces import IRequest, IRequestHandler
 from gitdaemon.protocol import ssh, http, PUSH, PULL, authorization
-from gitdaemon.protocol.authorization import  UnauthorizedException
+from gitdaemon.protocol.authorization import  UnauthorizedRepositoryException, UnauthorizedReferencesException
 
-class InvocationRequest(object):
+class Request(Object):
 
     GIT = getGit()
 
-    def __init__(self, request, repositoryPath, protocol, session, environmentVariables = {}):
+    def __init__(self, app, request, repositoryPath, protocol, session, environmentVariables = {}):
         self._request = request
         self._repositoryPath = repositoryPath
         self._protocol = protocol
         self._authenticationSession = session
         self._environmentVariables = environmentVariables
 
-        self._invariant()
+        Object.__init__(self, app)
 
     def getProtocol(self):
         self._invariant()
@@ -45,22 +46,44 @@ class InvocationRequest(object):
         return PULL
 
     def _invariant(self):
+        Object._invariant(self)
         assert IProcessProtocol.providedBy(self._protocol)
         assert isinstance(self._repositoryPath, list)
         assert isinstance(self._environmentVariables, dict)
         assert self.getType() in (PUSH, PULL)
 
-class HTTPInvocationRequest(InvocationRequest):
-    implements(IInvocationRequest)
+    def _labelAuthorizationCallback(self, request, protocol):
+        from gitdaemon.protocol import GitProcessProtocol
+        assert isinstance(protocol, GitProcessProtocol)
+        assert request[-1] is None
 
-    def __init__(self, request, protocol, session, environmentVariables = {}):
-        assert isinstance(request, Request)
+        type = self.getType()
+        labels = map(lambda x: x.split(), request[:-1])
+
+        assert isinstance(labels, list)
+        assert (reduce(lambda acc, x: acc and (x[0] in ("want", "have")), labels) and type == PULL) or type == PUSH
+
+        def _callback(result):
+            if result:
+                protocol.authorize()
+            else:
+                return Failure(UnauthorizedReferencesException())
+
+        d = maybeDeferred(self.app.getAuth().authorizeReferences, self.getSession(), labels, self.getType())
+        d.addCallback(_callback)
+        d.addErrback(authorization.authorizationErrorHandler, self.app, self.getProtocol())
+
+class HTTPRequest(Request):
+    implements(IRequest)
+
+    def __init__(self, app, request, protocol, session, environmentVariables = {}):
+        assert isinstance(request, twisted.web.http.Request)
         assert isinstance(protocol, ProcessProtocol)
 
-        protocol = http.GitProcessProtocol(protocol)
+        protocol = http.GitProcessProtocol(protocol, self._labelAuthorizationCallback)
         repositoryPath = request.prepath[:-1]
 
-        InvocationRequest.__init__(self, request, repositoryPath, protocol, session, environmentVariables)
+        Request.__init__(self, app, request, repositoryPath, protocol, session, environmentVariables)
 
         self._invariant()
 
@@ -80,23 +103,23 @@ class HTTPInvocationRequest(InvocationRequest):
         self._invariant()
 
     def getType(self):
-        return PUSH if self._request.prepath[-1:] == "git-receive-pack" else PULL
+        return PUSH if self._request.prepath[-1] == "git-receive-pack" else PULL
 
     def _invariant(self):
-        InvocationRequest._invariant(self)
-        assert isinstance(self._request, Request)
+        Request._invariant(self)
+        assert isinstance(self._request, twisted.web.http.Request)
 
-class SSHInvocationRequest(InvocationRequest):
-    implements(IInvocationRequest)
+class SSHRequest(Request):
+    implements(IRequest)
 
-    def __init__(self, request, protocol, session):
+    def __init__(self, app, request, protocol, session):
         assert isinstance(protocol, ProcessProtocol)
 
         request = shlex.split(request)
         repositoryPath = filter(None, request[-1].split('/'))
-        protocol = ssh.GitProcessProtocol(protocol)
+        protocol = ssh.GitProcessProtocol(protocol, self._labelAuthorizationCallback)
 
-        InvocationRequest.__init__(self, request, repositoryPath, protocol, session)
+        Request.__init__(self, app, request, repositoryPath, protocol, session)
 
         self._invariant()
 
@@ -105,8 +128,7 @@ class SSHInvocationRequest(InvocationRequest):
         self._invariant()
 
         command = self._request[0] + " '{0}'".format(repository)
-
-        reactor.spawnProcess(self._protocol, self.GIT, (self.GIT, 'shell', '-c', command), self._environmentVariables)
+        process = reactor.spawnProcess(self._protocol, self.GIT, (self.GIT, 'shell', '-c', command), self._environmentVariables)
 
         self._invariant()
 
@@ -114,29 +136,29 @@ class SSHInvocationRequest(InvocationRequest):
         return PUSH if self._request[0] == "git-receive-pack" else PULL
 
     def _invariant(self):
-        InvocationRequest._invariant(self)
+        Request._invariant(self)
         assert isinstance(self._request, list)
 
-class InvocationRequestHandler(object):
-    implements(IPlugin, IInvocationRequestHandler)
+class RequestHandler(object):
+    implements(IPlugin, IRequestHandler)
 
     """The main invocation logic when handling a Git request"""
 
     def _authorizationCallback(self, result, app, request, repository):
         assert isinstance(result, bool)
         assert isinstance(app, Application)
-        assert IInvocationRequest.providedBy(request)
+        assert IRequest.providedBy(request)
 
         """Callback for the dereferred returned by the authorization subsystem."""
 
         if result:
             request.finish(repository)
         else:
-            app.getErrorHandler().handle(UnauthorizedException("You don't have access to this repository."))
+            app.getErrorHandler().handle(UnauthorizedRepositoryException("You don't have access to this repository."))
 
     def handle(self, app, request):
         assert isinstance(app, Application)
-        assert IInvocationRequest.providedBy(request)
+        assert IRequest.providedBy(request)
 
         repository = app.getRepositoryRouter().route(app, request.getRepositoryPath())
 
@@ -150,25 +172,25 @@ class InvocationRequestHandler(object):
         else:
             app.getErrorHandler().handle(UnexistingRepositoryException(request.getProtocol()))
 
-    def createHTTPInvocationRequest(self, request, proto, user, env):
-        assert(isinstance(request, Request))
+    def createHTTPRequest(self, app, request, proto, user, env):
+        assert(isinstance(request, twisted.web.http.Request))
         assert(isinstance(proto, ProcessProtocol))
         assert(isinstance(env, dict))
 
-        request = HTTPInvocationRequest(request, proto, user, env)
+        request = HTTPRequest(app, request, proto, user, env)
 
-        assert(isinstance(request, InvocationRequest))
+        assert(isinstance(request, Request))
 
         return request
 
-    def createSSHInvocationRequest(self, request, proto, user):
+    def createSSHRequest(self, app, request, proto, user):
         assert(isinstance(request, str))
         assert(isinstance(proto, ProcessProtocol))
 
-        request = SSHInvocationRequest(request, proto, user)
+        request = SSHRequest(app, request, proto, user)
 
-        assert(isinstance(request, InvocationRequest))
+        assert(isinstance(request, Request))
 
         return request
 
-invocationRequestHandler = InvocationRequestHandler()
+invocationRequestHandler = RequestHandler()

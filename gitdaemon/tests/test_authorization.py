@@ -1,7 +1,52 @@
 from gitdaemon.interfaces import IAuth
-from gitdaemon.tests import formatRemote
-from gitdaemon.tests.plugins import default
+from gitdaemon.tests import formatRemote, AuthenticationTest
+from gitdaemon.tests.plugins import default, repoAuthorization, refsAuthorization
 from gitdaemon.tests.test_workflow import ApplicationTest
+
+class RepositoryAuthorizationTests(AuthenticationTest):
+
+    def setUp(self):
+        ApplicationTest.setUp(self)
+
+        self.startApplication(pluginPackages = {
+            IAuth: repoAuthorization
+        })
+
+    def testSSHPush(self):
+        remoteRepository = self._testPush(None)
+
+        def processEnded(result):
+            self.assertNoError()
+            self.assertEqual(self.repository, remoteRepository)
+
+        return self.pushRepository(self.repository).addCallback(processEnded)
+
+    def testSSHPull(self):
+        remoteRepository = self._testPull(None)
+
+        def processEnded(result):
+            self.assertError("Only PUSH requests are supported.")
+            self.assertNotEqual(self.repository, remoteRepository)
+
+        return self.pullRepository(self.repository).addCallback(processEnded)
+
+    def testHTTPPush(self):
+        remoteRepository = self._testPush(None, True)
+
+        def processEnded(result):
+            self.assertError()
+            self.assertNotEqual(self.repository, remoteRepository)
+
+        return self.pushRepository(self.repository).addCallback(processEnded)
+
+    def testHTTPPull(self):
+        remoteRepository = self._testPull(None, True)
+
+        def processEnded(result):
+            self.assertError()
+            self.assertNotEqual(self.repository, remoteRepository)
+
+        return self.pullRepository(self.repository).addCallback(processEnded)
 
 class PerLabelAuthorizationTests(ApplicationTest):
 
@@ -9,10 +54,10 @@ class PerLabelAuthorizationTests(ApplicationTest):
         ApplicationTest.setUp(self)
 
         self.startApplication(pluginPackages = {
-            IAuth: default
+            IAuth: refsAuthorization
         })
 
-    def testSSHPush(self):
+    def testSSHUnauthorizedPush(self):
         self.repository.initialize()
 
         remoteRepository = self.createTemporaryRepository(None, self.repository.path, True)
@@ -21,11 +66,12 @@ class PerLabelAuthorizationTests(ApplicationTest):
         self.generateComplicatedCommit()
 
         def processEnded(result):
-            self.assertEqual(self.repository, remoteRepository)
+            #self.assertError()
+            self.assertNotEqual(self.repository, remoteRepository)
 
         return self.pushRepository(self.repository, "derp").addCallback(processEnded)
 
-    def testHTTPPush(self):
+    def testHTTPUnauthorizedPush(self):
         self.repository.initialize()
 
         remoteRepository = self.createTemporaryRepository(None, self.repository.path, True)
@@ -34,11 +80,12 @@ class PerLabelAuthorizationTests(ApplicationTest):
         self.generateComplicatedCommit()
 
         def processEnded(result):
-            self.assertEqual(self.repository, remoteRepository)
+            #self.assertError()
+            self.assertNotEqual(self.repository, remoteRepository)
 
         return self.pushRepository(self.repository).addCallback(processEnded)
 
-    def testSSHPull(self):
+    def testSSHAuthorizedPull(self):
         self.repository.initialize()
 
         otherRepository = self.createTemporaryRepository(None, self.repository.path, False)
@@ -47,13 +94,14 @@ class PerLabelAuthorizationTests(ApplicationTest):
         self.generateComplicatedCommit(otherRepository)
 
         def processEnded(result):
+            self.assertNoError()
             self.assertEqual(self.repository, otherRepository)
 
         self.assertNotEqual(self.repository, otherRepository)
 
         return self.pullRepository(self.repository).addCallback(processEnded)
 
-    def testHTTPPull(self):
+    def testHTTPAuthorizedPull(self):
         self.repository.initialize()
 
         otherRepository = self.createTemporaryRepository(None, self.repository.path, False)
@@ -62,6 +110,7 @@ class PerLabelAuthorizationTests(ApplicationTest):
         self.generateComplicatedCommit(otherRepository)
 
         def processEnded(result):
+            self.assertNoError()
             self.assertEqual(self.repository, otherRepository)
 
         self.assertNotEqual(self.repository, otherRepository)

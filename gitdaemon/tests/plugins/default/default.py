@@ -1,9 +1,9 @@
 from twisted.plugin import IPlugin
 from zope.interface import implements
-from gitdaemon.interfaces import IInvocationRequest, IInvocationRequestHandler
+from gitdaemon.interfaces import IRequest, IRequestHandler
 
-class StubInvocationRequest(object):
-    implements(IInvocationRequest)
+class StubRequest(object):
+    implements(IRequest)
 
     def __init__(self, request, proto, user, env = {}, args = []):
         self.proto = proto
@@ -24,25 +24,25 @@ class StubInvocationRequest(object):
     def finish(self, repository):
         pass
 
-class StubInvocationRequestHandler(object):
-    implements(IPlugin, IInvocationRequestHandler)
+class StubRequestHandler(object):
+    implements(IPlugin, IRequestHandler)
 
     """The main invocation logic when handling a Git request"""
 
     def handle(self, app, request):
         request.finish(None)
 
-    def createHTTPInvocationRequest(self, request, proto, user, env, qargs = {}):
-        request = StubInvocationRequest(request, proto, user, env, qargs)
+    def createHTTPRequest(self, request, proto, user, env, qargs = {}):
+        request = StubRequest(request, proto, user, env, qargs)
 
         return request
 
-    def createSSHInvocationRequest(self, request, proto, user):
-        request = StubInvocationRequest(request, proto, user)
+    def createSSHRequest(self, request, proto, user):
+        request = StubRequest(request, proto, user)
 
         return request
 
-stubInvocationRequestHandler = StubInvocationRequestHandler()
+stubInvocationRequestHandler = StubRequestHandler()
 
 from twisted.cred.credentials import ISSHPrivateKey, IUsernamePassword
 from twisted.internet import defer
@@ -78,9 +78,10 @@ class Auth(object):
         else:
             return None
 
-    def authorizeRepository(self, user, repository, readOnly):
-        """Whether or not the user may access the repository"""
+    def authorizeRepository(self, user, repository, requestType):
+        return True
 
+    def authorizeReferences(self, session, refs, requestType):
         return True
 
 auth = Auth()

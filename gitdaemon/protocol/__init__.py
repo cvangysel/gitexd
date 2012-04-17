@@ -1,41 +1,83 @@
+from twisted.internet import main
 from twisted.internet.interfaces import IProcessProtocol, ITransport, IProcessTransport
 from twisted.internet.protocol import ProcessProtocol
+from twisted.python.failure import Failure
 from zope.interface import implements
 from gitdaemon.protocol.authorization import GitDecoder, _stripHeaders
 
-PUSH, PULL = range(0, 2)
+PULL, PUSH = range(0, 2)
 
 class GitProcessProtocol(object):
-    implements(IProcessProtocol, ITransport)
+    implements(IProcessProtocol)
 
-    def __init__(self, proto):
+    def _authorizeLabelCallback(self, request):
+        self._decoder.accept()
+        self._flush()
+
+    def __init__(self, proto, authCallback):
         assert isinstance(proto, ProcessProtocol)
 
+        self._dead = False
+
         self._proto = proto
-        self._decoder = GitDecoder("DAEMON")
-        self._processDecoder = GitDecoder("CLIENT")
+        self._decoder = GitDecoder()
+
+        self._processTransport = None
+        self._processTransportDecoder = GitDecoder()
+
+        self._decoder.getAdvertisementDeferred().addCallback(self._authorizeLabelCallback)
+        self._processTransportDecoder.getAdvertisementDeferred().addCallback(authCallback, self)
+
+    def getRequestReceivedDeferred(self):
+        return self._processTransportDecoder.getAdvertisementDeferred()
+
+    def authorize(self):
+        self._processTransportDecoder.accept()
+        self._processTransport._flush()
+
+    def die(self, message):
+        if self._proto.transport is not None:
+            self._proto.transport.write(message)
+            self._proto.transport.loseConnection()
+
+        self._die()
+
+    def _die(self):
+        self._processTransport._transport.write("0000PACK")
+        self._processTransport._transport.loseConnection()
+        self._dead = True
+
+    def _flush(self):
+        for x in self._decoder.flush():
+            self._proto.childDataReceived(1, x)
+
+    """
+        Everthing that belongs to the IProcessProtocol interface.
+    """
 
     def makeConnection(self, process):
-        self._proto.makeConnection(_GitProcessTransport(process, self._processDecoder))
+        self._processTransport = _GitProcessTransport(process, self._processTransportDecoder)
+        self._proto.makeConnection(self._processTransport)
 
     def childDataReceived(self, childFD, data):
         """
-                    Each line starts with a four byte line length declaration in hex.
-                    The section is terminated by a line length declaration of 0000.
+                    All the data received in this method is sent from the daemon to the client.
               """
 
-        striped, data = _stripHeaders(data)
+        if childFD == 1:
+            striped, data = _stripHeaders(data)
 
-        if striped is not None:
-            self._proto.childDataReceived(childFD, striped)
+            if striped is not None:
+                self._proto.childDataReceived(childFD, striped)
 
-            if 'x-git-upload-pack-result' in striped or 'x-git-receive-pack-result' in striped:
+                if 'x-git-upload-pack-result' in striped or 'x-git-receive-pack-result' in striped:
+                    self._decoder.accept()
+                    self._processTransportDecoder.accept()
 
-                self._decoder.allowAll()
-                self._processDecoder.allowAll()
-
-        for x in self._decoder.process(data):
-            self._proto.childDataReceived(childFD, x)
+            self._decoder.decode(data)
+            self._flush()
+        else:
+            self._proto.childDataReceived(childFD, data)
 
     def childConnectionLost(self, childFD):
         self._proto.childConnectionLost(childFD)
@@ -46,18 +88,6 @@ class GitProcessProtocol(object):
     def processEnded(self, reason):
         self._proto.processEnded(reason)
 
-    def write(self, data):
-        if self._proto.transport is not None:
-            self._proto.transport.write(data)
-
-    def writeSequence(self, seq):
-        self.write(''.join(seq))
-
-    def loseConnection(self):
-        if self._proto.transport is not None:
-            self._proto.transport.loseConnection();
-
-
 class _GitProcessTransport(object):
     implements(IProcessTransport)
 
@@ -67,6 +97,10 @@ class _GitProcessTransport(object):
 
         self._transport = transport
         self._decoder = decoder
+
+    def _flush(self):
+        for x in self._decoder.flush():
+            self._transport.write(x)
 
     def closeStdin(self):
         self._transport.closeStdin()
@@ -87,8 +121,12 @@ class _GitProcessTransport(object):
         self._transport.signalProcess(signalID)
 
     def write(self, data):
-        for x in self._decoder.process(data):
-            self._transport.write(x)
+        """
+                All the data sent through this method is sent from client to daemon.
+              """
+
+        self._decoder.decode(data)
+        self._flush()
 
     def writeSequence(self, data):
         self._transport.writeSequence(data)

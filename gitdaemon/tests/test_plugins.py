@@ -1,9 +1,9 @@
 from twisted.internet import reactor
 from twisted.trial import unittest
 from gitdaemon import Application, interfaces
-from gitdaemon.interfaces import IInvocationRequestHandler
+from gitdaemon.interfaces import IRequestHandler
 from gitdaemon.tests import plugins, _createDefaultConfigFile
-from gitdaemon.tests.plugins.default.default import StubInvocationRequestHandler
+from gitdaemon.tests.plugins.default.default import StubRequestHandler
 
 class ApplicationPluginTests(unittest.TestCase):
 
@@ -16,7 +16,7 @@ class ApplicationPluginTests(unittest.TestCase):
         app = Application(self.config)
 
         self.assertTrue(interfaces.IAuth.providedBy(app.getAuth()))
-        self.assertTrue(interfaces.IInvocationRequestHandler.providedBy(app.getRequestHandler()))
+        self.assertTrue(interfaces.IRequestHandler.providedBy(app.getRequestHandler()))
         self.assertTrue(interfaces.IExceptionHandler.providedBy(app.getErrorHandler()))
         self.assertTrue(interfaces.IRepositoryRouter.providedBy(app.getRepositoryRouter()))
 
@@ -33,7 +33,7 @@ class ApplicationPluginTests(unittest.TestCase):
 
     def testPluggedPlugins(self):
         pluginPackages = {
-            IInvocationRequestHandler: plugins.default
+            IRequestHandler: plugins.default
         }
 
         app = Application(self.config, pluginPackages)
@@ -42,7 +42,7 @@ class ApplicationPluginTests(unittest.TestCase):
         http = reactor.listenTCP(0, app.createHTTPFactory())
 
         app._invariant()
-        self.assertTrue(app.getRequestHandler(), StubInvocationRequestHandler)
+        self.assertTrue(app.getRequestHandler(), StubRequestHandler)
 
         ssh.stopListening()
         http.stopListening()

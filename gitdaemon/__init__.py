@@ -98,12 +98,12 @@ class Application(object):
 
             return plugin
 
-        self._requestHandler = loadPlugin(interfaces.IInvocationRequestHandler, self._pluginPackages)
+        self._requestHandler = loadPlugin(interfaces.IRequestHandler, self._pluginPackages)
         self._auth = loadPlugin(interfaces.IAuth, self._pluginPackages)
         self._errorHandler = loadPlugin(interfaces.IExceptionHandler, self._pluginPackages)
         self._repositoryRouter = loadPlugin(interfaces.IRepositoryRouter, self._pluginPackages)
 
-        assert interfaces.IInvocationRequestHandler.providedBy(self._requestHandler)
+        assert interfaces.IRequestHandler.providedBy(self._requestHandler)
         assert interfaces.IAuth.providedBy(self._auth)
         assert interfaces.IExceptionHandler.providedBy(self._errorHandler)
         assert interfaces.IRepositoryRouter.providedBy(self._repositoryRouter)
@@ -112,7 +112,7 @@ class Application(object):
         assert isinstance(self._pluginPackages, dict)
         assert isinstance(self._config, ConfigParser)
         assert isinstance(self._portal, Portal)
-        assert interfaces.IInvocationRequestHandler.providedBy(self._requestHandler)
+        assert interfaces.IRequestHandler.providedBy(self._requestHandler)
         assert interfaces.IAuth.providedBy(self._auth)
         assert interfaces.IExceptionHandler.providedBy(self._errorHandler)
         assert interfaces.IRepositoryRouter.providedBy(self._repositoryRouter)

@@ -11,7 +11,7 @@ class Auth(object):
     UserInterface = IUserStub
 
     def allowAnonymousAccess(self, app):
-        return None
+        return False
 
     def authenticateKey(self, app, credentials):
         assert ISSHPrivateKey.providedBy(credentials)
@@ -26,9 +26,10 @@ class Auth(object):
         else:
             return None
 
-    def authorizeRepository(self, user, repository, readOnly):
-        """Whether or not the user may access the repository"""
+    def authorizeRepository(self, user, repository, requestType):
+        return True
 
+    def authorizeReferences(self, session, refs, requestType):
         return True
 
 auth = Auth()

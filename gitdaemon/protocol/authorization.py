@@ -1,13 +1,18 @@
-from twisted.internet import reactor
+from twisted.internet import reactor, defer
 from twisted.internet.interfaces import IProcessProtocol
 from twisted.python.failure import Failure
 from gitdaemon.protocol.error import GitError
 from gitdaemon.protocol.git import formatPackline
 
-class UnauthorizedException(GitError):
+class UnauthorizedRepositoryException(GitError):
 
     def __init__(self, proto):
         GitError.__init__(self, "You don't have access to this repository.", proto)
+
+class UnauthorizedReferencesException(GitError):
+
+    def __init__(self, proto):
+        GitError.__init__(self, "You don't have access to this reference.", proto)
 
 def authorizationErrorHandler(fail, app, proto):
     # TODO Possibly combine with authenticationErrorHandler
@@ -37,26 +42,6 @@ def authorizationErrorHandler(fail, app, proto):
 
         fail.printTraceback()
         reactor.stop()
-
-def _decodeGitList(raw):
-    assert isinstance(raw, str)
-
-    data = []
-    x = 0
-
-    while (x < len(raw)):
-        length = int(raw[x:x+4], 16)
-
-        if length > 0:
-            data.append(raw[x+4:x+length].rstrip().replace('\x00', '').split(' '))
-        elif length == 0:
-            length = 4
-
-        x += length
-
-    assert isinstance(data, list)
-
-    return data
 
 def _consume(data, length):
     assert isinstance(data, str)
@@ -92,35 +77,73 @@ def _formatRequest(request):
         else:
             yield formatPackline(i)
 
+def _isAdvertisement(request):
+    if request[0][0] == '#':
+        """"""
+    elif request[0][:3] == "NAK":
+        """"""
+    elif request[0][:4] == "PACK":
+        """"""
+    elif len(request[0]) > 32:
+        return True
+    else:
+        """"""
+
+    return False
+
 class GitDecoder(object):
 
-    def __init__(self, name):
-        self._name = name
+    def __init__(self):
+        self._advertisementDeferred = defer.Deferred()
 
-        self._advertisement = None
+        self._accepted = False
 
-        self._ignore = False
-
-        self._formatted = []
         self._decoded = []
         self._raw = ""
 
-    def process(self, data):
-        self._raw = self._raw + data
+        self._processed = []
 
-        if not self._ignore:
-            self._decoded.extend(self._decodeGit())
+    def getAdvertisementDeferred(self):
+        return self._advertisementDeferred
 
-            for x in self._process():
-                yield x
+    def accept(self):
+        self._accepted = True
 
-        if self._ignore:
+    def flush(self):
+        if not self._accepted:
+            requests = self._extractRequests()
+
+            advertisement = None
+
+            for request in requests:
+                if _isAdvertisement(request):
+                    advertisement = request
+                    break
+
+            self._processed.extend(requests)
+
+            if advertisement is not None:
+                self._advertisementDeferred.callback(advertisement)
+
+        if self._accepted:
+            for request in self._processed:
+                for x in _formatRequest(request):
+                    yield x
+
+            self._processed = []
+
             if len(self._raw):
                 yield self._raw
 
-                self._raw = ""
+            self._raw = ""
 
-    def _process(self):
+    def decode(self, data):
+        self._raw = self._raw + data
+
+    def _extractRequests(self):
+        self._decoded.extend(self._extractLines())
+
+        requests = []
         request = []
 
         cutOff = 0
@@ -132,10 +155,7 @@ class GitDecoder(object):
                 value = None if not len(line) else line
                 request.append(value)
 
-                for x in self._processRequest(request):
-                    yield x
-
-                self._formatted.append(request)
+                requests.append(request)
 
                 request = []
 
@@ -145,27 +165,9 @@ class GitDecoder(object):
 
         self._decoded = self._decoded[cutOff:]
 
-    def _processRequest(self, request):
-        if request[0][0] == '#':
-            """"""
-        elif request[0][0] == '\x01':
-            """"""
-        elif request[0][:3] == "NAK":
-            """"""
-        elif request[0][:4] == "PACK":
-            """"""
-        elif len(request[0]) > 32:
-            #print self._name, "Advertisement", request
-            if self._advertisement is None:
-                self._advertisement = request
-                self.allowAll()
-        else:
-            """"""
+        return requests
 
-        for x in _formatRequest(request):
-            yield x
-
-    def _decodeGit(self):
+    def _extractLines(self):
         data = []
 
         while len(self._raw) > 0:
@@ -195,7 +197,3 @@ class GitDecoder(object):
                     break
 
         return data
-
-    def allowAll(self):
-        self._ignore = True
-

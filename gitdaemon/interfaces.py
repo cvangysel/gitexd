@@ -15,7 +15,7 @@
 from zope.interface import Interface
 from zope.interface.interface import Attribute
 
-class IInvocationRequestHandler(Interface):
+class IRequestHandler(Interface):
     """
          This interface provides the beating heart of the daemon and the basic implementation should suffice for most uses.
          Request enter from their respective protocol implementations through the :method:`handle` method that takes care of them,
@@ -43,7 +43,7 @@ class IInvocationRequestHandler(Interface):
                         request (:class:`IInvocationRequest`):  The request that needs to be handled.
               """
 
-    def createHTTPInvocationRequest(self, request, protocol, session, env):
+    def createHTTPRequest(self, request, protocol, session, env):
         """Create an instance of :class:`IInvocationRequest` that handles HTTP requests.
 
                     Args:
@@ -56,7 +56,7 @@ class IInvocationRequestHandler(Interface):
                         Instance of :class:`IInvocationRequest`.
               """
 
-    def createSSHInvocationRequest(self, request, protocol, session):
+    def createSSHRequest(self, request, protocol, session):
         """Create an instance of :class:`IInvocationRequest` that handles SSH requests.
 
                     Args:
@@ -68,7 +68,7 @@ class IInvocationRequestHandler(Interface):
                         Instance of :class:`IInvocationRequest`.
               """
 
-class IInvocationRequest(Interface):
+class IRequest(Interface):
     """
             This interface represents a request to the daemon and contains all the needed information to process that request.
 
@@ -205,19 +205,18 @@ class IAuth(Interface):
                         bool. Depending on whether the request is authorized.
               """
 
-    def authorizeAdvertisement(self, user, advertisement):
-        """
-                This method might change in the future.
+    def authorizeReferences(self, session, refs, requestType):
+        """Authorizes access to certain references in the current repository (fine-scaled authorization).
 
-                This method gets a chance to make changes to the advertisement exposed
-                by the Git process that handles communication with the repository.
-              """
+                    Args:
+                        session: Instance of the interface linked to by :attribute:`UserInterface`.
+                        labels (list): Tuple of refs (list). The structure of these refs depend on the requestType.
+                            - Push: each ref is actually a reference change with a previous reference, the next reference and a label name
+                            - Pull: each ref has as a first value "want" or "have", followed by a reference
+                        requestType (int): :ref:`protocol.PULL`or :ref:`protocol.PUSH` according to the type or request (read or write).
 
-    def authorizeRequest(self, user, request):
-        """
-                This method might change in the future.
-
-                This method gets a chance to make changes to the request made by the client.
+                    Returns
+                        bool. Depending on whether the request is authorized.
               """
 
 class IExceptionHandler(Interface):
