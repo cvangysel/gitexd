@@ -43,7 +43,6 @@ class GitProcessProtocol(object):
         self._die()
 
     def _die(self):
-        self._processTransport._transport.write("0000PACK")
         self._processTransport._transport.loseConnection()
         self._dead = True
 
