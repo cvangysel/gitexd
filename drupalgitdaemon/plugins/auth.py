@@ -90,11 +90,14 @@ class DrupalAuth(object):
 
         return service.deferred
 
-    def authorizeRepository(self, user, repository, requestType):
-        assert isinstance(user, Session)
+    def authorizeRepository(self, session, repository, requestType):
+        assert isinstance(session, Session)
         assert requestType in (PULL, PUSH)
 
-        return user.mayAccess(repository, requestType)
+        return session.mayAccess(repository, requestType)
+
+    def authorizeReferences(self, session, refs, requestType):
+        return True
 
     def _invariant(self):
         assert IServiceProtocol.implementedBy(self._protocol)
