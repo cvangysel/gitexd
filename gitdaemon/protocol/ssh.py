@@ -93,7 +93,6 @@ class Factory(SSHFactory):
 
         self.portal = portal
 
-        # TODO Place following logic in a try clause.
         self.privateKeys = {
             'ssh-rsa': keys.Key.fromFile(config.get("DEFAULT", "privateKeyLocation"))
         }

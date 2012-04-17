@@ -47,12 +47,11 @@ class ISession(Interface):
 
     """ """
 
-    def mayAccess(self, app, repository, readOnly = False, label = None):
-        """ """
+    def mayAccess(self, app, repository, requestType):
+        """Whether or not the current session may access a certain repository"""
 
     def __str__():
-        #TODO Finish doc below
-        """Should return name of committer """
+        """Should return name of committer in a string representation. Used for mapping committer to mnemomic id."""
 
 class Session(object):
     implements(ISession)
@@ -87,8 +86,6 @@ class Session(object):
             elif not isinstance(pushctlData, int):
                 return Failure(DrupalOrgAuthException("Drupal.org is having some troubles."))
             elif auth and pushctl and requestType == PUSH:
-                # TODO PushControl also disables pulling
-
                 mask = authData["repo_group"] & pushctlData
 
                 if mask:

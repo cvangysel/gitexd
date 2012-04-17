@@ -18,20 +18,14 @@ from gitdaemon.protocol.http import Script
 from gitdaemon.protocol.ssh import ConchUser
 
 def authenticationErrorHandler(fail):
-    # TODO Possibly combine with authorizationErrorHandler
     assert isinstance(fail, Failure)
 
-    r = fail.trap(UnauthorizedLogin, ValidPublicKey, NotImplementedError, Exception)
+    r = fail.trap(UnauthorizedLogin, ValidPublicKey, Exception)
 
     if r == UnauthorizedLogin:
         fail.trap(Failure)
     elif r == ValidPublicKey:
         """Ignore."""
-    elif r == NotImplementedError:
-        """NotImplemented, sometimes used for testing."""
-
-        fail.printTraceback()
-        reactor.stop()
     else:
         """Unknown exception, halt excecution."""
 

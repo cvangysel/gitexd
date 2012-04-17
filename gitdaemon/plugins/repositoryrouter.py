@@ -11,7 +11,6 @@ class RepositoryRouter(object):
         assert isinstance(app, Application)
         assert isinstance(repository, list)
 
-        # TODO Place following logic in a try clause.
         schemePath = app.getConfig().get("DEFAULT", "repositoryPath")
         path = os.path.join(schemePath, *repository)
 
