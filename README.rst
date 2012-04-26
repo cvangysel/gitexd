@@ -12,6 +12,8 @@ The logic that the daemon uses to
 	* and to invoke everything above
 is customizable by the user of the daemon and thus allows for pretty advanced uses.
 
+If you are looking for an implementation example, see the `Drupal.org implementation <https://github.com/cvangysel/gitexd-drupalorg>`_.
+
 Requirements
 ------------
 	* `Python 2.7 <http://www.python.org>`_
