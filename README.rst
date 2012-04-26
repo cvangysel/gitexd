@@ -1,7 +1,7 @@
 Extensible Git Daemon
 =====================
 
-Extensible Git Daemon (*gitexd*) is an event-driven, customizable and extensible solution developed in Python for the purpose of a bachelor thesis at the University of Antwerp. It provides users with a basic daemon that exposes repositories through the Secure Shell and the Hypertext Transport Transfer Protocol.
+Extensible Git Daemon (**gitexd**) is an event-driven, customizable and extensible solution developed in Python for the purpose of a bachelor thesis at the University of Antwerp. It provides users with a basic daemon that exposes repositories through the Secure Shell and the Hypertext Transport Transfer Protocol.
 
 The logic that the daemon uses to
 	* route requested repositories to the local file system,
@@ -19,9 +19,7 @@ Requirements
 Using the daemon
 ----------------
 
-Starting the daemon can be done as simply as the following code snippet:
-
-.. code-block:: python
+Starting the daemon can be done as simply as the following code snippet::
 
 	config = ConfigParser.ConfigParser()
 	config.readfp(open(‘gitexd.cfg’))
