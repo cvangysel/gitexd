@@ -1,14 +1,14 @@
 import os
 from twisted.plugin import IPlugin
 from zope.interface.declarations import implements
-from gitdaemon import Application
-from gitdaemon.interfaces import IRepositoryRouter
+from gitexd import Factory
+from gitexd.interfaces import IRepositoryRouter
 
 class DrupalRepositoryRouter(object):
     implements(IPlugin, IRepositoryRouter)
 
     def route(self, app, repository):
-        assert isinstance(app, Application)
+        assert isinstance(app, Factory)
         assert isinstance(repository, list)
 
         if len(repository) <= 1:

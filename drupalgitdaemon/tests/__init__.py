@@ -1,4 +1,4 @@
-from gitdaemon.tests import _createDefaultConfigFile
+from gitexd.tests import _createDefaultConfigFile
 
 def _createDrupalAuthConfigFile(repoPath = '', allowAnon = False):
     defaults = {

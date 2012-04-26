@@ -5,10 +5,10 @@ from twisted.trial import unittest
 from drupalgitdaemon.tests import _createDrupalAuthConfigFile
 from drupalgitdaemon.tests.plugins import authentication
 from drupalgitdaemon.tests.plugins.authentication.auth import DrupalTestAuth
-from gitdaemon import Application
-from gitdaemon.interfaces import  IAuth
-from gitdaemon.tests import ApplicationTest, formatRemote
-from gitdaemon.tests.test_repositoryEncapsulation import GitTestHelper
+from gitexd import Factory
+from gitexd.interfaces import  IAuth
+from gitexd.tests import ApplicationTest, formatRemote
+from gitexd.tests.test_repositoryEncapsulation import GitTestHelper
 
 class AuthenticationTests(ApplicationTest):
 
@@ -52,7 +52,7 @@ class AuthenticationTests(ApplicationTest):
     def _setUp(self, allowAnon = False):
         self.config = _createDrupalAuthConfigFile(self.repoPath, allowAnon)
 
-        self.app = Application(self.config, self.pluginPackages)
+        self.app = Factory(self.config, self.pluginPackages)
 
         self.ssh = reactor.listenTCP(0, self.app.createSSHFactory())
         self.http = reactor.listenTCP(0, self.app.createHTTPFactory())

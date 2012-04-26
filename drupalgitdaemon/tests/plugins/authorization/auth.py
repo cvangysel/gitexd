@@ -2,7 +2,7 @@ from twisted.plugin import IPlugin
 from zope.interface.declarations import implements
 from drupalgitdaemon.plugins.auth import DrupalAuth
 from drupalgitdaemon.tests.plugins import DummyServiceProtocol
-from gitdaemon.interfaces import IAuth
+from gitexd.interfaces import IAuth
 
 """
     The following class copies the exact same behavior of DrupalAuth,

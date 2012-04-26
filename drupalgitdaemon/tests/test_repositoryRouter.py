@@ -3,10 +3,10 @@ import tempfile
 from twisted.internet import reactor
 from twisted.trial import unittest
 from drupalgitdaemon import plugins
-from gitdaemon import Application
-from gitdaemon.interfaces import IRepositoryRouter
-from gitdaemon.tests import GitTestHelper, _createDefaultConfigFile
-from gitdaemon.tests.test_plugins import _createDefaultConfigFile
+from gitexd import Factory
+from gitexd.interfaces import IRepositoryRouter
+from gitexd.tests import GitTestHelper
+from gitexd.tests.test_plugins import _createDefaultConfigFile
 
 __author__ = 'christophe'
 
@@ -21,7 +21,7 @@ class RepositoryRouterTests(GitTestHelper):
             IRepositoryRouter: plugins
         }
 
-        self.app = Application(self.config, pluginPackages)
+        self.app = Factory(self.config, pluginPackages)
 
         self.ssh = reactor.listenTCP(0, self.app.createSSHFactory())
         self.http = reactor.listenTCP(0, self.app.createHTTPFactory())

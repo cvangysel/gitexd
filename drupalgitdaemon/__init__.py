@@ -2,10 +2,10 @@ from twisted.internet.defer import DeferredList
 from twisted.python.failure import Failure
 from zope.interface.declarations import implements
 from zope.interface.interface import Interface
-from gitdaemon import Application
-from gitdaemon.protocol import PULL, PUSH
-from gitdaemon.protocol.error import GitError
-from gitdaemon.interfaces import IException
+from gitexd import Factory
+from gitexd.protocol import PULL, PUSH
+from gitexd.protocol.error import GitError
+from gitexd.interfaces import IException
 
 class DrupalOrgAuthException(GitError):
     implements(IException)
@@ -57,7 +57,7 @@ class Session(object):
     implements(ISession)
 
     def __init__(self, app, authService, pushctlService, data):
-        assert isinstance(app, Application)
+        assert isinstance(app, Factory)
         assert isinstance(data, dict)
 
         self._app = app

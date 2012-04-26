@@ -1,6 +1,6 @@
 from drupalgitdaemon.tests.plugins import authorization
 from drupalgitdaemon.tests.test_authentication import AuthenticationTests
-from gitdaemon.interfaces import IAuth
+from gitexd.interfaces import IAuth
 
 __author__ = 'christophe'
 

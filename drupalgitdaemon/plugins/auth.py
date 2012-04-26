@@ -6,21 +6,21 @@ from zope.interface.declarations import implements
 from drupalgitdaemon import ISession, AnonymousSession, Session
 from drupalgitdaemon.service import IServiceProtocol, Service
 from drupalgitdaemon.service.protocols import HTTPServiceProtocol
-from gitdaemon import Application
-from gitdaemon.interfaces import IAuth
+from gitexd import Factory
+from gitexd.interfaces import IAuth
 import hashlib
-from gitdaemon.protocol import PUSH, PULL
+from gitexd.protocol import PUSH, PULL
 
 class DrupalAuth(object):
     implements(IPlugin, IAuth)
 
-    UserInterface = ISession
+    SessionInterface = ISession
 
     def __init__(self):
         self.protocol = HTTPServiceProtocol
 
     def _handleProtocolCallback(self, result, app, data):
-        assert isinstance(app, Application)
+        assert isinstance(app, Factory)
         assert isinstance(data, dict)
 
         if result:
@@ -32,7 +32,7 @@ class DrupalAuth(object):
             return None
 
     def allowAnonymousAccess(self, app):
-        assert isinstance(app, Application)
+        assert isinstance(app, Factory)
 
         if app.getConfig().get("DEFAULT", "allowAnonymous", True):
             service = Service(self.protocol(app.getConfig(), 'vcs-auth-data'))
@@ -42,7 +42,7 @@ class DrupalAuth(object):
             return defer.succeed(None)
 
     def authenticateKey(self, app, credentials):
-        assert isinstance(app, Application)
+        assert isinstance(app, Factory)
         assert ISSHPrivateKey.providedBy(credentials)
 
         key = Key.fromString(credentials.blob)
@@ -74,7 +74,7 @@ class DrupalAuth(object):
         return service.deferred
 
     def authenticatePassword(self, app, credentials):
-        assert isinstance(app, Application)
+        assert isinstance(app, Factory)
         assert IUsernamePassword.providedBy(credentials)
 
         service = Service(self.protocol(app.getConfig(), 'drupalorg-vcs-auth-check-user-pass'))
