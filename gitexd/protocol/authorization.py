@@ -68,6 +68,9 @@ def _formatRequest(request):
             yield formatPackline(i)
 
 def _isAdvertisement(request):
+    if len(request) == 1 and request[0] is None:
+        # Empty advertisement
+        return True
     if request[0][0] == '#':
         """"""
     elif request[0][:3] == "NAK":

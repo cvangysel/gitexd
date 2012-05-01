@@ -61,7 +61,7 @@ class Request(Object):
         labels = map(lambda x: x.split(), request[:-1])
 
         assert isinstance(labels, list)
-        assert (reduce(lambda acc, x: acc and (x[0] in ("want", "have")), labels) and type == PULL) or type == PUSH
+        assert not labels or (reduce(lambda acc, x: acc and (x[0] in ("want", "have")), labels) and type == PULL) or type == PUSH
 
         def _callback(result):
             if result:
