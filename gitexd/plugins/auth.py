@@ -9,7 +9,7 @@ class Auth(object):
 
     """Trivial implementation of the auth plugin that doesn't check anything."""
 
-    UserInterface = None
+    SessionInterface = None
 
     def allowAnonymousAccess(self, app):
         return defer.succeed(True)
