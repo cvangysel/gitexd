@@ -26,8 +26,8 @@ class Factory(object):
         assert isinstance(config, ConfigParser)
         assert isinstance(pluginPackages, dict)
 
-        self._config = config;
-        self._pluginPackages = pluginPackages;
+        self._config = config
+        self._pluginPackages = pluginPackages
 
         self._loadPlugins()
 
