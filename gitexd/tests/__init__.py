@@ -19,7 +19,7 @@ class GitTestHelper(unittest.TestCase):
 
         self.repoPath = tempfile.mkdtemp()
 
-        self.success = False
+        self.success = None
         self.error = None
         self.permissionDenied = False
 
@@ -100,7 +100,7 @@ class GitTestHelper(unittest.TestCase):
             elif "fatal: The remote end hung up unexpectedly" in o or "fatal: Authentication failed" in o:
                 self.permissionDenied = True
                 self.success = False
-            else:
+            elif self.success is None:
                 self.success = True
 
         return output
@@ -195,13 +195,13 @@ class GitProcess(Accumulator):
         if "Are you sure you want to continue connecting (yes/no)?" in d:
             self.transport.write("yes\n")
 
-        if "assword" in d:
+        if "password" in d.lower():
             if self.password is not None:
                 self.transport.write(self.password + "\n")
             else:
                 self.transport.write("\n")
 
-        if "Username:" in d:
+        if "username" in d.lower():
             self.transport.write("\n")
 
         Accumulator.outReceived(self, d)
