@@ -40,7 +40,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'Git-Daemon'
+project = u'Extensible Git Daemon'
 copyright = u'2012, Christophe Van Gysel'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -164,27 +164,31 @@ html_static_path = ['_static']
 #html_file_suffix = None
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'Git-Daemondoc'
+htmlhelp_basename = 'gitexddoc'
 
 
 # -- Options for LaTeX output --------------------------------------------------
 
 latex_elements = {
 # The paper size ('letterpaper' or 'a4paper').
-#'papersize': 'letterpaper',
+'papersize': 'a4paper',
 
 # The font size ('10pt', '11pt' or '12pt').
 #'pointsize': '10pt',
 
 # Additional stuff for the LaTeX preamble.
-#'preamble': '',
+'preamble': '\pagestyle{empty}',
+
+'tableofcontents': '',
+
+'printindex': '',
 }
 
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-  ('index', 'Git-Daemon.tex', u'Git-Daemon Documentation',
-   u'Christophe Van Gysel', 'manual'),
+  ('index', 'gitexd.tex', u'Gitexd Documentation',
+   u'Christophe Van Gysel', 'howto'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -193,19 +197,21 @@ latex_documents = [
 
 # For "manual" documents, if this is true, then toplevel headings are parts,
 # not chapters.
-#latex_use_parts = False
+latex_use_parts = False
 
 # If true, show page references after internal links.
 #latex_show_pagerefs = False
 
 # If true, show URL addresses after external links.
-#latex_show_urls = False
+latex_show_urls = False
 
 # Documents to append as an appendix to all manuals.
 #latex_appendices = []
 
 # If false, no module index is generated.
-#latex_domain_indices = True
+latex_domain_indices = False
+
+latex_use_modindex = False
 
 
 # -- Options for manual page output --------------------------------------------
@@ -213,7 +219,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('index', 'git-daemon', u'Git-Daemon Documentation',
+    ('index', 'gitexd', u'Gitexd Documentation',
      [u'Christophe Van Gysel'], 1)
 ]
 
@@ -236,7 +242,7 @@ texinfo_documents = [
 #texinfo_appendices = []
 
 # If false, no module index is generated.
-#texinfo_domain_indices = True
+texinfo_domain_indices = False
 
 # How to display URL addresses: 'footnote', 'no', or 'inline'.
 #texinfo_show_urls = 'footnote'
