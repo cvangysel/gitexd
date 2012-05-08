@@ -100,6 +100,8 @@ class GitTestHelper(unittest.TestCase):
             elif "fatal: The remote end hung up unexpectedly" in o or "fatal: Authentication failed" in o:
                 self.permissionDenied = True
                 self.success = False
+            else:
+                self.success = True
 
         return output
 
@@ -193,7 +195,7 @@ class GitProcess(Accumulator):
         if "Are you sure you want to continue connecting (yes/no)?" in d:
             self.transport.write("yes\n")
 
-        if "assword:" in d:
+        if "assword" in d:
             if self.password is not None:
                 self.transport.write(self.password + "\n")
             else:
