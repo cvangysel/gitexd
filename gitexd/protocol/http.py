@@ -1,15 +1,15 @@
 """
-    The Hypertext Transfer Protocol offers authentication anonymously and through a password mechanism. For encryption one should inspect the
+    The Hypertext Transfer Protocol offers authentication anonymously or through a password mechanism. For encryption one should inspect the
     secure variety of HTTP. However it is the responsibility of the user to launch the daemon using the correct structures provided by Twisted, see
     `Using SSL in Twisted <http://twistedmatrix.com/documents/current/core/howto/ssl.html>`.
 
     Client requests are GET requests to the web server and the plugin that implements the IRequestHandler interface should handle them correctly.
     As opposed to the persistent nature of Secure Shell where every request refers to a new session that exists for as long as there is something to be
-    done, the Hypertext Transfer Protocol is stateless and one client request will take multiple requests through the daemon.
+    done, the Hypertext Transfer Protocol is stateless and one Git push or pull will take multiple requests through the daemon.
 
     When implementing users should be aware of this as authentication will happen for every individual HTTP request and it is currently not possible
     to keep a persistent state between individual HTTP requests (such as the daemon sees them). One should not worry about authorization as
-    requests that have not been authorized are simply not passed to the local Git processes when using the default implementation.
+    requests that have not been authorized are simply not allowed to pass..
 """
 
 import copy

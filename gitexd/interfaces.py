@@ -1,12 +1,12 @@
 """
-    The `interfaces` module contains all the interfaces you can implement to provide your own logic. However, you don't need to implement all of them if you want
-    to specify your own logic. A cherry-pick approach can be used and most of the time only implementing :class:`IAuth` and :class:`IRepositoryRouter`
+    The `interfaces` module contains all the interfaces you can implement to provide your own logic. However, it is not required to implement all of them.
+    A cherry-pick approach can be used and most of the time only implementing :class:`IAuth` and :class:`IRepositoryRouter`
     can get you a long way. If you want to override the error messages or log them to some external service, have a look at :class:`IExceptionHandler`
     and if you don't like the order of invocation or want to experiment a little, check out :class:`IRequestHandler` and :class:`IRequest`.
 
     .. note::
-        All other subsystems (except the authentication part of :class:`IAuth` and some error messages) are invoked in :class:`IRequest`
-        and I hope that you won't need to implement your own logic. That would mean our generic approach wasn't generic enough.
+        All other subsystems (except the authentication part of :class:`IAuth` and some error messages) are invoked by :class:`IRequestHandler` and
+        :class:`IRequest`. I hope that you won't need to implement these, that would mean our approach wasn't sufficiently generic enough.
 
     The interface system is the same as used internally by Twisted, please refer to the documentation on the Twisted website at
     `Components: Interfaces and Adapters <http://twistedmatrix.com/documents/current/core/howto/components.html>`_.
@@ -18,7 +18,7 @@ from zope.interface.interface import Attribute
 class IRequestHandler(Interface):
     """
          This interface provides the beating heart of the daemon and the basic implementation should suffice for most uses.
-         Request enter from their respective protocol implementations through the :method:`handle` method that takes care of them,
+         Request enter from their respective protocol implementations through the `handle` method that takes care of them,
          each request is actually represented by the :class:`IRequest` interface.
 
          The handler also provides factory-like capabilities for creating :class:`IRequest` instances. Every request created through
@@ -29,17 +29,17 @@ class IRequestHandler(Interface):
             there's a chance to interact with them.
 
          .. note::
-            Error handling can happen in stages outside of the scope of the :class:`IRequestHandler` (like during authentication).
+            Error handling can happen in stages outside of the scope of the :class:`IRequestHandler`, for example during authentication.
 
-         It is the responsibility of the :class:`IRequestHandler` interface to invoke the :method:`IRequest.finish` method on the
+         It is the responsibility of the :class:`IRequestHandler` interface to invoke the `IRequest.finish` method on the
          respective IRequest instances after the request has been routed and authorized.
        """
 
-    def handle(self, app, request):
+    def handle(self, factory, request):
         """Handle a Git request.
 
                     Args:
-                        app (:class:`Application`):  The application object.
+                        factory (:class:`Factory`):  The application object.
                         request (:class:`IRequest`):  The request that needs to be handled.
               """
 
@@ -49,7 +49,7 @@ class IRequestHandler(Interface):
                     Args:
                         request (:class:`twisted.web.http.Request`): The HTTP request object created by Twisted.
                         protocol (:class:`twisted.internet.protocol.ProcessProtocol`): The ProcessProtocol object representing the connection.
-                        session: Instance of the interface linked to by :member:`IAuth.SessionInterface`.
+                        session: Instance of the interface linked to by :ref:`SessionInterface`.
                         env (dict): Environment variables.
 
                     Returns:
@@ -62,7 +62,7 @@ class IRequestHandler(Interface):
                     Args:
                         request (str): The command executed over the SSH transport protocol.
                         protocol (:class:`twisted.internet.protocol.ProcessProtocol`): The ProcessProtocol object representing the connection.
-                        session: Instance of the interface linked to by :member:`IAuth.SessionInterface`.
+                        session: Instance of the interface linked to by :ref:`SessionInterface`.
 
                     Returns:
                         Instance of :class:`IRequest`.
@@ -81,21 +81,21 @@ class IRequest(Interface):
         """Returns whether the request is a pull or push.
 
                     Returns:
-                        int. :member:`protocol.PULL` or `protocol.PUSH` values (see :ref:`requesttype`)  according to the type or request (read or write).
+                        int. `protocol.PULL` or `protocol.PUSH` values (see :ref:`requesttype`)  according to the type or request (read or write).
                """
 
     def getRepositoryPath(self):
         """Return the path to the requested repository. This still needs to be processed by the :class:`IRepositoryRouter` plugin.
 
                     Returns:
-                        str or None.
+                        list or None.
               """
 
     def getProtocol(self):
         """Return the :class:`twisted.internet.protocol.ProcessProtocol` representing the connection."""
 
     def getSession(self):
-        """Returns the instance of the interface linked to by :member:`IAuth.SessionInterface`."""
+        """Returns the instance of the interface linked to by :ref:`SessionInterface`."""
 
     def finish(self, repository):
         """Executes the request by accessing the requested repository and performing the appropriate actions. This often means that
@@ -115,12 +115,12 @@ class IRepositoryRouter(Interface):
             you will need to define yourself.
        """
 
-    def route(self, app, repository):
-        """"Returns an absolute path to the repository on the file system. You best use the utilities in the :module:`os.path` module
+    def route(self, factory, repository):
+        """"Returns an absolute path to the repository on the file system. You best use the utilities in the `os.path` module
                   to avoid problems on different operation systems. It should also ensure that the repository exists on the file system.
 
                     Args:
-                        app (:class:`Application`):  The application object.
+                        factory (:class:`Factory`):  The application object.
                         repository (list): The requested repository.
 
                     Returns:
@@ -137,7 +137,7 @@ class IAuth(Interface):
             your implementation.
 
             All the authentication-based methods should return an instantiation of this interface on success which will the be passed to the
-            authorization-based methods when their time arrives. This allows every request to be represented by the implementers choice of state,
+            authorization-based methods when their time arrives. This allows every request to be represented by the implementer's choice of state,
             from as simple as storing the username to as complicated as making server-side request to a third party system.
 
             .. note::
@@ -148,18 +148,18 @@ class IAuth(Interface):
 
             .. note::
                 Implementations of the interface provided by the implementer should provide a textual representation of the user that the request
-                belongs to. This representation is passed through to the server-side Git logic to use as a means to identify the name of the committer
-                when pushing over the HTTP protocol.
+                belongs to, this mean the __str__ method needs to be implemented. This representation is passed through to the server-side Git
+                logic to use as a means to identify the name of the committer when pushing over the HTTP protocol.
        """
 
     SessionInterface = Attribute(   "An interface that represents a `session` in the implementation. " +
                                     "It is mainly used to keep a persistent state between authentication and authorization.")
 
-    def allowAnonymousAccess(self, app):
+    def allowAnonymousAccess(self, factory):
         """Whether or not anonymous access to the service is allowed.
 
                     Args:
-                        app (:class:`Application`):  The application object.
+                        factory (:class:`Factory`):  The application object.
 
                     Returns:
                         Instance of :ref:`SessionInterface` implementation if successful, None or False otherwise. For example:.
@@ -167,11 +167,11 @@ class IAuth(Interface):
                             Instance of :ref:`SessionInterface` implementation -- Anonymous access is supported and the returned instance will be used for authorization.
               """
 
-    def authenticateKey(self, app, credentials):
+    def authenticateKey(self, factory, credentials):
         """Whether or not the specified :class:`ISSHPrivateKey` instance contains valid credentials.
 
                     Args:
-                        app (:class:`Application`):  The application object.
+                        factory (:class:`Factory`):  The application object.
                         credentials (:class:`ISSHPrivateKey`): The credentials to verify.
 
                     Returns:
@@ -180,11 +180,11 @@ class IAuth(Interface):
                             Instance of :ref:`SessionInterface` implementation -- Provided credentials are correct.
               """
 
-    def authenticatePassword(self, app, credentials):
+    def authenticatePassword(self, factory, credentials):
         """Whether or not the specified :class:`IUsernamePassword` instance contains valid credentials.
 
                     Args:
-                        app (:class:`Application`):  The application object.
+                        factory (:class:`Factory`):  The application object.
                         credentials (:class:`IUsernamePassword`): The credentials to verify.
 
                     Returns:
@@ -223,8 +223,8 @@ class IExceptionHandler(Interface):
 
     """
             All error handling is done through the implementation of this interface. It's also the simplest of all interfaces described here and
-            you will only need to implement it yourself if you want custom error messages (translated messages for example) or you want to log
-            every error to some special place.
+            you will only need to implement it yourself if you want custom error messages, like translated messages for example, or you if you have
+            the desire to log every error somewhere..
        """
 
     def handle(self, exception, protocol = None):
@@ -234,7 +234,7 @@ class IExceptionHandler(Interface):
                 This method can be invoked with an instance of :class:`twisted.internet.protocol.ProcessProtocol`, but it can also be contained in the
                 error itself or it just might not be available. This is because the object might not be available at the moment of error and you can't
                 exactly wait on it being created when stuff is going wrong. If there is no object at all, that's because the `Twisted` decided to terminate the
-                connection for us, and is just letting us know.
+                connection for us, and is kindly letting us know.
 
                     Args:
                         exception (:class:`IException`): Instance of implementation of :class:`IException` representing the error.
