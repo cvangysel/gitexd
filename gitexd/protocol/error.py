@@ -33,10 +33,7 @@ class GitError(Error):
         Error.__init__(self, message, proto)
 
     def _formatMessage(self):
-        from git import formatPackline
-
-        message = formatPackline("ERR " + self._message)
-        return message
+        return self._message
 
 class ErrorProtocol(protocol.Protocol):
 

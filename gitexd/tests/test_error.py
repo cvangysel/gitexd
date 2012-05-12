@@ -34,7 +34,7 @@ class ErrorTests(ApplicationTest):
         self.generateComplicatedCommit()
 
         def processEnded(result):
-            self.assertError()
+            self.assertError("Hello world")
             self.assertNotEqual(self.repository, remoteRepository)
 
         return self.pushRepository(self.repository).addCallback(processEnded)

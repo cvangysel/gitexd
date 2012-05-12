@@ -21,6 +21,7 @@ from twisted.web.twcgi import CGIScript, CGIProcessProtocol
 from zope.interface.interface import Interface
 from gitexd import Object
 from gitexd.protocol import GitProcessProtocol
+from git import formatPackline
 
 class GitProcessProtocol(GitProcessProtocol):
     """
@@ -28,16 +29,33 @@ class GitProcessProtocol(GitProcessProtocol):
        """
 
     def die(self, message):
-        if self._processTransport is None:
-            self._proto.request.setResponseCode(500)
+        request = self._proto.request
+
+        if self._processTransport is not None:
+            self._errorMessage = message
+
+            self._die()
+        else:
+            if request.method == "GET":
+                if request.args.has_key("service"):
+                    service = formatPackline("# service=" + request.args['service'][0] + "\n")
+                    self._proto.request.write(service)
+                    self._proto.request.write("0000")
+
+                    error = formatPackline("ERR " + message + "\n")
+                    self._proto.request.write(error)
+                    self._proto.request.write("0000")
+                else:
+                    request.setResponseCode(500)
+            elif request.method == "POST":
+                self._proto.request.write(self._generateErrorMessage(message, True))
+
             self._proto.request.unregisterProducer()
             self._proto.request.finish()
-        else:
-            self._die()
 
     def processEnded(self, reason):
         if self._dead:
-            self._proto.request.write(resource.ErrorPage(http.INTERNAL_SERVER_ERROR, "CGI Script Error", "There was an error.").render(self._proto.request))
+            self._proto.request.write(self._generateErrorMessage(self._errorMessage, True))
 
         self._proto.request.unregisterProducer()
         self._proto.request.finish()
@@ -80,8 +98,13 @@ class Script(CGIScript, Object):
         self._invariant()
 
         proto = CGIProcessProtocol(request)
-
-        self.app.getRequestHandler().handle(self.app, self.app.getRequestHandler().createHTTPRequest(self.app, request, proto, self._session, env))
+        r = self.app.getRequestHandler().createHTTPRequest(self.app, request, proto, self._session, env)
+        
+        if request.method in ("POST", "GET"):
+            self.app.getRequestHandler().handle(self.app, r)
+        else:
+            request.setResponseCode(500)
+            request.finish()
 
         self._invariant()
 

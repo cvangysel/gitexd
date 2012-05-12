@@ -20,11 +20,12 @@ from zope.interface.interface import Interface
 from gitexd import Object
 from gitexd.protocol import GitProcessProtocol
 from gitexd.protocol.error import Error
+from git import formatPackline
 
 class GitProcessProtocol(GitProcessProtocol):
 
     def die(self, message):
-        self._proto.session.write(message)
+        self._proto.session.write(self._generateErrorMessage(message))
 
         if self._processTransport is not None:
             self._die()

@@ -190,3 +190,6 @@ class GitDecoder(object):
                     break
 
         return data
+
+    def isAccepted(self):
+        self._accepted

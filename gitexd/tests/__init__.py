@@ -92,6 +92,9 @@ class GitTestHelper(unittest.TestCase):
             if o.startswith("fatal: remote error: "):
                 self.error = o[len("fatal: remote error: "):].rstrip("\n\r")
                 self.success = False
+            elif o.startswith("remote: error: "):
+                self.error = o[len("remote: error: "):].split("\r\n")[0]
+                self.success = False
             elif o.startswith("error: The requested URL returned error"):
                 self.error = True
                 self.success = False
@@ -132,7 +135,7 @@ class GitTestHelper(unittest.TestCase):
         repository = Repository(path)
 
         if clone is not None:
-            repository.clone(self.repository.path, bare)
+            repository.clone(clone, bare)
 
         return repository
 
@@ -150,6 +153,9 @@ class GitTestHelper(unittest.TestCase):
     def assertNoError(self):
         self.assertTrue(self.success)
         self.assertTrue(self.error is None, self.error)
+
+    def assertNotSuccess(self):
+        self.assertFalse(self.success)
 
     def tearDown(self):
         shutil.rmtree(self.path)
@@ -264,13 +270,15 @@ class AuthenticationTest(ApplicationTest):
     def _testPull(self, user, HTTP = False):
         self.repository.initialize()
 
-        remoteRepository = self.createTemporaryRepository(None, self.repository.path, False)
+        tempRepository = self.createTemporaryRepository(None, self.repository.path, False)
+        self.generateComplicatedCommit(tempRepository)
+
+        remoteRepository = self.createTemporaryRepository(None, tempRepository.path, True)
+        remoteName = remoteRepository.path.split('/')[-1]
 
         if HTTP:
-            self.repository.addRemote("origin", formatRemote("http", self.http, remoteRepository.path.split('/')[-1], user))
+            self.repository.addRemote("origin", formatRemote("http", self.http, remoteName, user))
         else:
-            self.repository.addRemote("origin", formatRemote("ssh", self.ssh, remoteRepository.path.split('/')[-1], user))
-
-        self.generateComplicatedCommit(remoteRepository)
+            self.repository.addRemote("origin", formatRemote("ssh", self.ssh, remoteName, user))
 
         return remoteRepository

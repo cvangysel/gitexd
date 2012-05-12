@@ -154,7 +154,7 @@ class RequestHandler(object):
         if result:
             request.finish(repository)
         else:
-            app.getErrorHandler().handle(UnauthorizedRepositoryException("You don't have access to this repository."))
+            app.getErrorHandler().handle(UnauthorizedRepositoryException(request.getProtocol()))
 
     def handle(self, app, request):
         assert isinstance(app, Factory)

@@ -34,7 +34,8 @@ class RepositoryAuthorizationTests(AuthenticationTest):
         remoteRepository = self._testPush(None, True)
 
         def processEnded(result):
-            self.assertError()
+            # Push requests through HTTP are first noticed as PULLs
+            self.assertError("Only PUSH requests are supported.")
             self.assertNotEqual(self.repository, remoteRepository)
 
         return self.pushRepository(self.repository).addCallback(processEnded)
@@ -43,7 +44,7 @@ class RepositoryAuthorizationTests(AuthenticationTest):
         remoteRepository = self._testPull(None, True)
 
         def processEnded(result):
-            self.assertError()
+            self.assertError("Only PUSH requests are supported.")
             self.assertNotEqual(self.repository, remoteRepository)
 
         return self.pullRepository(self.repository).addCallback(processEnded)
@@ -66,7 +67,7 @@ class PerLabelAuthorizationTests(ApplicationTest):
         self.generateComplicatedCommit()
 
         def processEnded(result):
-            #self.assertError()
+            self.assertNotSuccess()
             self.assertNotEqual(self.repository, remoteRepository)
 
         return self.pushRepository(self.repository, "derp").addCallback(processEnded)
@@ -80,7 +81,7 @@ class PerLabelAuthorizationTests(ApplicationTest):
         self.generateComplicatedCommit()
 
         def processEnded(result):
-            #self.assertError()
+            self.assertError("You are not allowed to PUSH to second-branch.")
             self.assertNotEqual(self.repository, remoteRepository)
 
         return self.pushRepository(self.repository).addCallback(processEnded)

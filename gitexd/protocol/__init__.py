@@ -11,6 +11,7 @@ from twisted.internet.interfaces import IProcessProtocol, ITransport, IProcessTr
 from twisted.internet.protocol import ProcessProtocol
 from zope.interface import implements
 from gitexd.protocol.authorization import GitDecoder, _stripHeaders
+from gitexd.protocol.git import formatPackline
 
 PULL, PUSH = range(0, 2)
 
@@ -34,6 +35,18 @@ class GitProcessProtocol(object):
 
         self._decoder.getAdvertisementDeferred().addCallback(self._authorizeLabelCallback)
         self._processTransportDecoder.getAdvertisementDeferred().addCallback(authCallback, self)
+
+    def _generateErrorMessage(self, message = None, packFile = None):
+        if message is None:
+            message = "unknown"
+
+        if packFile is None:
+            packFile = self._processTransportDecoder.isAccepted()
+
+        if packFile:
+            return (formatPackline("\x03error: " + message))
+        else:
+            return (formatPackline("ERR " + message))
 
     def getRequestReceivedDeferred(self):
         return self._processTransportDecoder.getAdvertisementDeferred()

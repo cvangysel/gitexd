@@ -52,11 +52,17 @@ class Repository(object):
 
         return output
 
-    def initialize(self):
+    def initialize(self, bare = False):
         self._invariant()
         assert not self.isValidGitRepository()
 
-        self.executeCommand("init")
+        arg = []
+
+        if bare:
+            arg.append("--bare")
+            self.bare = True
+
+        self.executeCommand("init", arg)
 
         self._invariant()
         assert self.isValidGitRepository()
