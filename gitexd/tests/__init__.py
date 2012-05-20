@@ -98,11 +98,11 @@ class GitTestHelper(unittest.TestCase):
             elif o.startswith("error: The requested URL returned error"):
                 self.error = True
                 self.success = False
-            elif "Writing objects: 100%" in o or "Unpacking objects: 100%" in o:
-                self.success = True
-            elif "fatal: The remote end hung up unexpectedly" in o or "fatal: Authentication failed" in o:
+            elif "fatal: The remote end hung up unexpectedly" in o or "fatal: Authentication failed" in o or "error:" in o:
                 self.permissionDenied = True
                 self.success = False
+            elif "Writing objects: 100%" in o or "Unpacking objects: 100%" in o:
+                self.success = True
             elif self.success is None:
                 self.success = True
 
