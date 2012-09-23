@@ -6,30 +6,30 @@ from gitexd.interfaces import IAuth
 from gitexd.tests.plugins.default.default import UserStub, IUserStub
 
 class Auth(object):
-    implements(IPlugin, IAuth)
+  implements(IPlugin, IAuth)
 
-    SessionInterface = IUserStub
+  SessionInterface = IUserStub
 
-    def allowAnonymousAccess(self, app):
-        return False
+  def allowAnonymousAccess(self, app):
+    return False
 
-    def authenticateKey(self, app, credentials):
-        assert ISSHPrivateKey.providedBy(credentials)
+  def authenticateKey(self, app, credentials):
+    assert ISSHPrivateKey.providedBy(credentials)
 
-        return False
+    return False
 
-    def authenticatePassword(self, app, credentials):
-        assert IUsernamePassword.providedBy(credentials)
+  def authenticatePassword(self, app, credentials):
+    assert IUsernamePassword.providedBy(credentials)
 
-        if credentials.username == "pass" and credentials.password == "test_pass":
-            return defer.succeed(UserStub())
-        else:
-            return None
+    if credentials.username == "pass" and credentials.password == "test_pass":
+      return defer.succeed(UserStub())
+    else:
+      return None
 
-    def authorizeRepository(self, user, repository, requestType):
-        return True
+  def authorizeRepository(self, user, repository, requestType):
+    return True
 
-    def authorizeReferences(self, session, refs, requestType):
-        return True
+  def authorizeReferences(self, session, refs, requestType):
+    return True
 
 auth = Auth()

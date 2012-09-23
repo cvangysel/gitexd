@@ -18,118 +18,121 @@ from gitexd.protocol.http import Script
 from gitexd.protocol.ssh import ConchUser
 
 def authenticationErrorHandler(fail):
-    assert isinstance(fail, Failure)
+  assert isinstance(fail, Failure)
 
-    r = fail.trap(UnauthorizedLogin, ValidPublicKey, Exception)
+  r = fail.trap(UnauthorizedLogin, ValidPublicKey, Exception)
 
-    if r == UnauthorizedLogin:
-        fail.trap(Failure)
-    elif r == ValidPublicKey:
-        """Ignore."""
-    else:
-        """Unknown exception, halt excecution."""
+  if r == UnauthorizedLogin:
+    fail.trap(Failure)
+  elif r == ValidPublicKey:
+    """Ignore."""
+  else:
+    """Unknown exception, halt excecution."""
 
-        fail.printTraceback()
-        reactor.stop()
+    fail.printTraceback()
+    reactor.stop()
+
 
 class CredentialsChecker(gitexd.Object):
+  def __init__(self, app):
+    gitexd.Object.__init__(self, app)
 
-    def __init__(self, app):
-        gitexd.Object.__init__(self, app)
+  def authCallback(self, result, credentials):
+    assert ICredentials.providedBy(credentials)
 
-    def authCallback(self, result, credentials):
-        assert ICredentials.providedBy(credentials)
+    if result == False or result is None:
+      return Failure(UnauthorizedLogin())
+    else:
+      return result
 
-        if result == False or result is None:
-            return Failure(UnauthorizedLogin())
-        else:
-            return result
 
 class PublicKeyChecker(CredentialsChecker):
-    implements(ICredentialsChecker)
+  implements(ICredentialsChecker)
 
-    credentialInterfaces = ISSHPrivateKey,
+  credentialInterfaces = ISSHPrivateKey,
 
-    def authCallback(self, result, credentials):
+  def authCallback(self, result, credentials):
+    """Adapted from twisted.conch.checkers.SSHPublicKeyDatabase._cbRequestAvatarId"""
 
-        """Adapted from twisted.conch.checkers.SSHPublicKeyDatabase._cbRequestAvatarId"""
+    assert ICredentials.providedBy(credentials)
 
-        assert ICredentials.providedBy(credentials)
+    if result == False or result is None:
+      return Failure(UnauthorizedLogin())
+    elif not credentials.signature:
+      return Failure(ValidPublicKey())
+    else:
+      try:
+        pubKey = Key.fromString(credentials.blob)
 
-        if result == False or result is None:
-            return Failure(UnauthorizedLogin())
-        elif not credentials.signature:
-            return Failure(ValidPublicKey())
-        else:
-            try:
-                pubKey = Key.fromString(credentials.blob)
+        if pubKey.verify(credentials.signature, credentials.sigData):
+          return result
+      except:
+        log.err()
 
-                if pubKey.verify(credentials.signature, credentials.sigData):
-                    return result
-            except:
-                log.err()
+      return Failure(UnauthorizedLogin())
 
-            return Failure(UnauthorizedLogin())
+  def requestAvatarId(self, credentials):
+    self._invariant()
+    assert ISSHPrivateKey.providedBy(credentials)
 
-    def requestAvatarId(self, credentials):
-        self._invariant()
-        assert ISSHPrivateKey.providedBy(credentials)
+    d = defer.maybeDeferred(self.app.getAuth().authenticateKey, self.app, credentials)
+    d.addCallback(self.authCallback, credentials)
 
-        d = defer.maybeDeferred(self.app.getAuth().authenticateKey, self.app, credentials)
-        d.addCallback(self.authCallback, credentials)
+    d.addErrback(authenticationErrorHandler)
 
-        d.addErrback(authenticationErrorHandler)
+    assert isinstance(d, defer.Deferred)
 
-        assert isinstance(d, defer.Deferred)
+    return d
 
-        return d
 
 class PasswordChecker(CredentialsChecker):
-    implements(ICredentialsChecker)
+  implements(ICredentialsChecker)
 
-    credentialInterfaces = IUsernamePassword,
+  credentialInterfaces = IUsernamePassword,
 
-    def requestAvatarId(self, credentials):
-        self._invariant()
-        assert IUsernamePassword.providedBy(credentials)
+  def requestAvatarId(self, credentials):
+    self._invariant()
+    assert IUsernamePassword.providedBy(credentials)
 
-        d = defer.maybeDeferred(self.app.getAuth().authenticatePassword, self.app, credentials)
-        d.addCallback(self.authCallback, credentials)
+    d = defer.maybeDeferred(self.app.getAuth().authenticatePassword, self.app, credentials)
+    d.addCallback(self.authCallback, credentials)
 
-        d.addErrback(authenticationErrorHandler)
+    d.addErrback(authenticationErrorHandler)
 
-        assert isinstance(d, defer.Deferred)
+    assert isinstance(d, defer.Deferred)
 
-        return d
+    return d
+
 
 class AnonymousChecker(CredentialsChecker):
-    implements(ICredentialsChecker)
+  implements(ICredentialsChecker)
 
-    credentialInterfaces = IAnonymous,
+  credentialInterfaces = IAnonymous,
 
-    def requestAvatarId(self, credentials):
-        self._invariant()
-        assert IAnonymous.providedBy(credentials)
+  def requestAvatarId(self, credentials):
+    self._invariant()
+    assert IAnonymous.providedBy(credentials)
 
-        d = defer.maybeDeferred(self.app.getAuth().allowAnonymousAccess, self.app)
-        d.addCallback(self.authCallback, credentials)
+    d = defer.maybeDeferred(self.app.getAuth().allowAnonymousAccess, self.app)
+    d.addCallback(self.authCallback, credentials)
 
-        d.addErrback(authenticationErrorHandler)
+    d.addErrback(authenticationErrorHandler)
 
-        assert isinstance(d, defer.Deferred)
+    assert isinstance(d, defer.Deferred)
 
-        return d
+    return d
+
 
 class Realm(gitexd.Object):
-    implements(portal.IRealm)
+  implements(portal.IRealm)
 
-    def __init__(self, app):
-        gitexd.Object.__init__(self, app)
+  def __init__(self, app):
+    gitexd.Object.__init__(self, app)
 
-    def requestAvatar(self, obj, mind, *interfaces):
-        if IConchUser in interfaces:
-            return IConchUser, ConchUser(self.app, obj), lambda: None
-        elif IResource in interfaces:
-            return IResource, Script(self.app, obj), lambda: None
-        else:
-            raise NotImplementedError()
+  def requestAvatar(self, obj, mind, *interfaces):
+    if IConchUser in interfaces:
+      return IConchUser, ConchUser(self.app, obj), lambda: None
+    elif IResource in interfaces:
+      return IResource, Script(self.app, obj), lambda: None
+    else:
+      raise NotImplementedError()

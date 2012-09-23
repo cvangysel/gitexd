@@ -3,44 +3,45 @@ from zope.interface import implements
 from gitexd.interfaces import IRequest, IRequestHandler
 
 class StubRequest(object):
-    implements(IRequest)
+  implements(IRequest)
 
-    def __init__(self, request, proto, user, env = {}, args = []):
-        self.proto = proto
-        self.user = user
-        self.env = env
-        self.args = args
-        self.repoPath = []
+  def __init__(self, request, proto, user, env={}, args=[]):
+    self.proto = proto
+    self.user = user
+    self.env = env
+    self.args = args
+    self.repoPath = []
 
-    def getProtocol(self):
-        return self.proto
+  def getProtocol(self):
+    return self.proto
 
-    def getRepositoryPath(self):
-        return self.repoPath
+  def getRepositoryPath(self):
+    return self.repoPath
 
-    def getUser(self):
-        return self.user
+  def getUser(self):
+    return self.user
 
-    def finish(self, repository):
-        pass
+  def finish(self, repository):
+    pass
+
 
 class StubRequestHandler(object):
-    implements(IPlugin, IRequestHandler)
+  implements(IPlugin, IRequestHandler)
 
-    """The main invocation logic when handling a Git request"""
+  """The main invocation logic when handling a Git request"""
 
-    def handle(self, app, request):
-        request.finish(None)
+  def handle(self, app, request):
+    request.finish(None)
 
-    def createHTTPRequest(self, request, proto, user, env, qargs = {}):
-        request = StubRequest(request, proto, user, env, qargs)
+  def createHTTPRequest(self, request, proto, user, env, qargs={}):
+    request = StubRequest(request, proto, user, env, qargs)
 
-        return request
+    return request
 
-    def createSSHRequest(self, request, proto, user):
-        request = StubRequest(request, proto, user)
+  def createSSHRequest(self, request, proto, user):
+    request = StubRequest(request, proto, user)
 
-        return request
+    return request
 
 stubInvocationRequestHandler = StubRequestHandler()
 
@@ -52,36 +53,38 @@ from zope.interface.interface import Interface
 from gitexd.interfaces import IAuth
 
 class IUserStub(Interface):
-    """Stub for User class"""
+  """Stub for User class"""
+
 
 class UserStub(object):
-    implements(IUserStub)
+  implements(IUserStub)
+
 
 class Auth(object):
-    implements(IPlugin, IAuth)
+  implements(IPlugin, IAuth)
 
-    SessionInterface = IUserStub
+  SessionInterface = IUserStub
 
-    def allowAnonymousAccess(self, app):
-        return defer.succeed(UserStub())
+  def allowAnonymousAccess(self, app):
+    return defer.succeed(UserStub())
 
-    def authenticateKey(self, app, credentials):
-        assert ISSHPrivateKey.providedBy(credentials)
+  def authenticateKey(self, app, credentials):
+    assert ISSHPrivateKey.providedBy(credentials)
 
-        return defer.succeed(UserStub())
+    return defer.succeed(UserStub())
 
-    def authenticatePassword(self, app, credentials):
-        assert IUsernamePassword.providedBy(credentials)
+  def authenticatePassword(self, app, credentials):
+    assert IUsernamePassword.providedBy(credentials)
 
-        if credentials.username == "git":
-            return defer.succeed(UserStub())
-        else:
-            return None
+    if credentials.username == "git":
+      return defer.succeed(UserStub())
+    else:
+      return None
 
-    def authorizeRepository(self, user, repository, requestType):
-        return True
+  def authorizeRepository(self, user, repository, requestType):
+    return True
 
-    def authorizeReferences(self, session, refs, requestType):
-        return True
+  def authorizeReferences(self, session, refs, requestType):
+    return True
 
 auth = Auth()

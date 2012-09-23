@@ -16,142 +16,143 @@ from gitexd.protocol.git import formatPackline
 PULL, PUSH = range(0, 2)
 
 class GitProcessProtocol(object):
-    implements(IProcessProtocol)
+  implements(IProcessProtocol)
 
-    def _authorizeLabelCallback(self, request):
-        self._decoder.accept()
-        self._flush()
+  def _authorizeLabelCallback(self, request):
+    self._decoder.accept()
+    self._flush()
 
-    def __init__(self, proto, authCallback):
-        assert isinstance(proto, ProcessProtocol)
+  def __init__(self, proto, authCallback):
+    assert isinstance(proto, ProcessProtocol)
 
-        self._dead = False
+    self._dead = False
 
-        self._proto = proto
-        self._decoder = GitDecoder()
+    self._proto = proto
+    self._decoder = GitDecoder()
 
-        self._processTransport = None
-        self._processTransportDecoder = GitDecoder()
+    self._processTransport = None
+    self._processTransportDecoder = GitDecoder()
 
-        self._decoder.getAdvertisementDeferred().addCallback(self._authorizeLabelCallback)
-        self._processTransportDecoder.getAdvertisementDeferred().addCallback(authCallback, self)
+    self._decoder.getAdvertisementDeferred().addCallback(self._authorizeLabelCallback)
+    self._processTransportDecoder.getAdvertisementDeferred().addCallback(authCallback, self)
 
-    def _generateErrorMessage(self, message = None, packFile = None):
-        if message is None:
-            message = "unknown"
+  def _generateErrorMessage(self, message=None, packFile=None):
+    if message is None:
+      message = "unknown"
 
-        if packFile is None:
-            packFile = self._processTransportDecoder.isAccepted()
+    if packFile is None:
+      packFile = self._processTransportDecoder.isAccepted()
 
-        if packFile:
-            return (formatPackline("\x03error: " + message))
-        else:
-            return (formatPackline("ERR " + message))
+    if packFile:
+      return (formatPackline("\x03error: " + message))
+    else:
+      return (formatPackline("ERR " + message))
 
-    def getRequestReceivedDeferred(self):
-        return self._processTransportDecoder.getAdvertisementDeferred()
+  def getRequestReceivedDeferred(self):
+    return self._processTransportDecoder.getAdvertisementDeferred()
 
-    def authorize(self):
-        self._processTransportDecoder.accept()
-        self._processTransport._flush()
+  def authorize(self):
+    self._processTransportDecoder.accept()
+    self._processTransport._flush()
 
-    def die(self, message):
-        if self._proto.transport is not None:
-            self._proto.transport.write(message)
-            self._proto.transport.loseConnection()
+  def die(self, message):
+    if self._proto.transport is not None:
+      self._proto.transport.write(message)
+      self._proto.transport.loseConnection()
 
-        self._die()
+    self._die()
 
-    def _die(self):
-        self._processTransport._transport.loseConnection()
-        self._dead = True
+  def _die(self):
+    self._processTransport._transport.loseConnection()
+    self._dead = True
 
-    def _flush(self):
-        for x in self._decoder.flush():
-            self._proto.childDataReceived(1, x)
+  def _flush(self):
+    for x in self._decoder.flush():
+      self._proto.childDataReceived(1, x)
 
+  """
+      Everthing that belongs to the IProcessProtocol interface.
+  """
+
+  def makeConnection(self, process):
+    self._processTransport = _GitProcessTransport(process, self._processTransportDecoder)
+    self._proto.makeConnection(self._processTransport)
+
+  def childDataReceived(self, childFD, data):
     """
-        Everthing that belongs to the IProcessProtocol interface.
+          All the data received in this method is sent from the daemon to the client.
     """
 
-    def makeConnection(self, process):
-        self._processTransport = _GitProcessTransport(process, self._processTransportDecoder)
-        self._proto.makeConnection(self._processTransport)
+    if childFD == 1:
+      striped, data = _stripHeaders(data)
 
-    def childDataReceived(self, childFD, data):
-        """
-                    All the data received in this method is sent from the daemon to the client.
-              """
+      if striped is not None:
+        self._proto.childDataReceived(childFD, striped)
 
-        if childFD == 1:
-            striped, data = _stripHeaders(data)
+        if 'x-git-upload-pack-result' in striped or 'x-git-receive-pack-result' in striped:
+          self._decoder.accept()
+          self._processTransportDecoder.accept()
 
-            if striped is not None:
-                self._proto.childDataReceived(childFD, striped)
+      self._decoder.decode(data)
+      self._flush()
+    else:
+      self._proto.childDataReceived(childFD, data)
 
-                if 'x-git-upload-pack-result' in striped or 'x-git-receive-pack-result' in striped:
-                    self._decoder.accept()
-                    self._processTransportDecoder.accept()
+  def childConnectionLost(self, childFD):
+    self._proto.childConnectionLost(childFD)
 
-            self._decoder.decode(data)
-            self._flush()
-        else:
-            self._proto.childDataReceived(childFD, data)
+  def processExited(self, reason):
+    self._proto.processExited(reason)
 
-    def childConnectionLost(self, childFD):
-        self._proto.childConnectionLost(childFD)
+  def processEnded(self, reason):
+    self._proto.processEnded(reason)
 
-    def processExited(self, reason):
-        self._proto.processExited(reason)
-
-    def processEnded(self, reason):
-        self._proto.processEnded(reason)
 
 class _GitProcessTransport(object):
-    implements(IProcessTransport)
+  implements(IProcessTransport)
 
-    def __init__(self, transport, decoder):
-        assert ITransport.providedBy(transport)
-        assert isinstance(decoder, GitDecoder)
+  def __init__(self, transport, decoder):
+    assert ITransport.providedBy(transport)
+    assert isinstance(decoder, GitDecoder)
 
-        self._transport = transport
-        self._decoder = decoder
+    self._transport = transport
+    self._decoder = decoder
 
-    def _flush(self):
-        for x in self._decoder.flush():
-            self._transport.write(x)
+  def _flush(self):
+    for x in self._decoder.flush():
+      self._transport.write(x)
 
-    def closeStdin(self):
-        self._transport.closeStdin()
+  def closeStdin(self):
+    self._transport.closeStdin()
 
-    def closeStdout(self):
-        self._transport.closeStdout()
+  def closeStdout(self):
+    self._transport.closeStdout()
 
-    def closeChildFD(self, descriptor):
-        self._transport.closeChildFD(descriptor)
+  def closeChildFD(self, descriptor):
+    self._transport.closeChildFD(descriptor)
 
-    def writeToChild(self, childFd, data):
-        self._transport.writeToChild(childFd, data)
+  def writeToChild(self, childFd, data):
+    self._transport.writeToChild(childFd, data)
 
-    def loseConnection(self):
-        self._transport.loseConnection()
+  def loseConnection(self):
+    self._transport.loseConnection()
 
-    def signalProcess(self, signalID):
-        self._transport.signalProcess(signalID)
+  def signalProcess(self, signalID):
+    self._transport.signalProcess(signalID)
 
-    def write(self, data):
-        """
-                All the data sent through this method is sent from client to daemon.
-              """
+  def write(self, data):
+    """
+      All the data sent through this method is sent from client to daemon.
+    """
 
-        self._decoder.decode(data)
-        self._flush()
+    self._decoder.decode(data)
+    self._flush()
 
-    def writeSequence(self, data):
-        self._transport.writeSequence(data)
+  def writeSequence(self, data):
+    self._transport.writeSequence(data)
 
-    def getPeer(self):
-        return self._transport.getPeer()
+  def getPeer(self):
+    return self._transport.getPeer()
 
-    def getHost(self):
-        return self._transport.getHost()
+  def getHost(self):
+    return self._transport.getHost()

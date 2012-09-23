@@ -24,95 +24,95 @@ from gitexd.protocol import GitProcessProtocol
 from git import formatPackline
 
 class GitProcessProtocol(GitProcessProtocol):
-    """
-            Custom implementation to support error messages.
-       """
+  """
+       Custom implementation to support error messages.
+  """
 
-    def die(self, message):
-        request = self._proto.request
+  def die(self, message):
+    request = self._proto.request
 
-        if self._processTransport is not None:
-            self._errorMessage = message
+    if self._processTransport is not None:
+      self._errorMessage = message
 
-            self._die()
+      self._die()
+    else:
+      if request.method == "GET":
+        if request.args.has_key("service"):
+          service = formatPackline("# service=" + request.args['service'][0] + "\n")
+          self._proto.request.write(service)
+          self._proto.request.write("0000")
+
+          error = formatPackline("ERR " + message + "\n")
+          self._proto.request.write(error)
+          self._proto.request.write("0000")
         else:
-            if request.method == "GET":
-                if request.args.has_key("service"):
-                    service = formatPackline("# service=" + request.args['service'][0] + "\n")
-                    self._proto.request.write(service)
-                    self._proto.request.write("0000")
+          request.setResponseCode(500)
+      elif request.method == "POST":
+        self._proto.request.write(self._generateErrorMessage(message, True))
 
-                    error = formatPackline("ERR " + message + "\n")
-                    self._proto.request.write(error)
-                    self._proto.request.write("0000")
-                else:
-                    request.setResponseCode(500)
-            elif request.method == "POST":
-                self._proto.request.write(self._generateErrorMessage(message, True))
+      self._proto.request.unregisterProducer()
+      self._proto.request.finish()
 
-            self._proto.request.unregisterProducer()
-            self._proto.request.finish()
+  def processEnded(self, reason):
+    if self._dead:
+      self._proto.request.write(self._generateErrorMessage(self._errorMessage, True))
 
-    def processEnded(self, reason):
-        if self._dead:
-            self._proto.request.write(self._generateErrorMessage(self._errorMessage, True))
+    self._proto.request.unregisterProducer()
+    self._proto.request.finish()
 
-        self._proto.request.unregisterProducer()
-        self._proto.request.finish()
 
 class Factory(Site):
+  def __init__(self, portal, config):
+    Site.__init__(self, HTTPAuthSessionWrapper(portal, [BasicCredentialFactory("GitDaemon")]))
 
-    def __init__(self, portal, config):
-        Site.__init__(self, HTTPAuthSessionWrapper(portal, [BasicCredentialFactory("GitDaemon")]))
+  def getResourceFor(self, request):
+    request.site = self
+    request.sitepath = copy.copy(request.prepath)
 
-    def getResourceFor(self, request):
-        request.site = self
-        request.sitepath = copy.copy(request.prepath)
+    request.prepath.extend(request.postpath)
+    request.postpath = []
 
-        request.prepath.extend(request.postpath)
-        request.postpath = []
+    return self.resource
 
-        return self.resource
 
 class Script(CGIScript, Object):
+  isLeaf = False
 
-    isLeaf = False
+  children = ()
 
-    children = ()
+  def __init__(self, app, session):
+    self._session = session
 
-    def __init__(self, app, session):
-        self._session = session
+    Object.__init__(self, app)
+    CGIScript.__init__(self, None)
 
-        Object.__init__(self, app)
-        CGIScript.__init__(self, None)
+    self._invariant()
 
-        self._invariant()
+  def getChild(self, name, request):
+    raise NotImplementedError()
 
-    def getChild(self, name, request):
-        raise NotImplementedError()
+  def runProcess(self, env, request, qargs=[]):
+    assert(isinstance(request, http.Request))
+    assert(isinstance(env, dict))
 
-    def runProcess(self, env, request, qargs = []):
-        assert(isinstance(request, http.Request))
-        assert(isinstance(env, dict))
+    self._invariant()
 
-        self._invariant()
+    proto = CGIProcessProtocol(request)
+    r = self.app.getRequestHandler().createHTTPRequest(self.app, request, proto, self._session, env)
 
-        proto = CGIProcessProtocol(request)
-        r = self.app.getRequestHandler().createHTTPRequest(self.app, request, proto, self._session, env)
-        
-        if request.method in ("POST", "GET"):
-            self.app.getRequestHandler().handle(self.app, r)
-        else:
-            request.setResponseCode(500)
-            request.finish()
+    if request.method in ("POST", "GET"):
+      self.app.getRequestHandler().handle(self.app, r)
+    else:
+      request.setResponseCode(500)
+      request.finish()
 
-        self._invariant()
+    self._invariant()
 
-    def _invariant(self):
-        Object._invariant(self)
+  def _invariant(self):
+    Object._invariant(self)
 
-        if self.app.getAuth().SessionInterface is Interface:
-            assert self.app.getAuth().SessionInterface.providedBy(self._session)
+    if self.app.getAuth().SessionInterface is Interface:
+      assert self.app.getAuth().SessionInterface.providedBy(self._session)
 
-        assert not self.isLeaf
-        assert not self.children
+    assert not self.isLeaf
+    assert not self.children

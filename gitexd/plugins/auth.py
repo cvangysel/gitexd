@@ -5,29 +5,29 @@ from zope.interface.declarations import implements
 from gitexd.interfaces import IAuth
 
 class Auth(object):
-    implements(IPlugin, IAuth)
+  implements(IPlugin, IAuth)
 
-    """Trivial implementation of the auth plugin that doesn't check anything."""
+  """Trivial implementation of the auth plugin that doesn't check anything."""
 
-    SessionInterface = None
+  SessionInterface = None
 
-    def allowAnonymousAccess(self, app):
-        return defer.succeed(True)
+  def allowAnonymousAccess(self, app):
+    return defer.succeed(True)
 
-    def authenticateKey(self, app, credentials):
-        assert ISSHPrivateKey.providedBy(credentials)
+  def authenticateKey(self, app, credentials):
+    assert ISSHPrivateKey.providedBy(credentials)
 
-        return defer.succeed(True)
+    return defer.succeed(True)
 
-    def authenticatePassword(self, app, credentials):
-        assert IUsernamePassword.providedBy(credentials)
+  def authenticatePassword(self, app, credentials):
+    assert IUsernamePassword.providedBy(credentials)
 
-        return defer.succeed(True)
+    return defer.succeed(True)
 
-    def authorizeRepository(self, user, repository, readOnly):
-        return True
+  def authorizeRepository(self, user, repository, readOnly):
+    return True
 
-    def authorizeReferences(self, session, refs, requestType):
-        return True
+  def authorizeReferences(self, session, refs, requestType):
+    return True
 
 auth = Auth()

@@ -3,38 +3,37 @@ from gitexd.tests import ApplicationTest, formatRemote
 from gitexd.tests.plugins import error
 
 class ErrorTests(ApplicationTest):
+  def setUp(self):
+    ApplicationTest.setUp(self)
 
-    def setUp(self):
-        ApplicationTest.setUp(self)
+    self.startApplication(pluginPackages={
+      IAuth: error
+    })
 
-        self.startApplication(pluginPackages = {
-            IAuth: error
-        })
+  def testSSHError(self):
+    self.repository.initialize()
 
-    def testSSHError(self):
-        self.repository.initialize()
+    remoteRepository = self.createTemporaryRepository(None, self.repository.path, True)
 
-        remoteRepository = self.createTemporaryRepository(None, self.repository.path, True)
+    self.repository.addRemote("origin", formatRemote("ssh", self.ssh, remoteRepository.path.split('/')[-1]))
+    self.generateComplicatedCommit()
 
-        self.repository.addRemote("origin", formatRemote("ssh", self.ssh, remoteRepository.path.split('/')[-1]))
-        self.generateComplicatedCommit()
+    def processEnded(result):
+      self.assertError("Hello world")
+      self.assertNotEqual(self.repository, remoteRepository)
 
-        def processEnded(result):
-            self.assertError("Hello world")
-            self.assertNotEqual(self.repository, remoteRepository)
+    return self.pushRepository(self.repository, "derp").addCallback(processEnded)
 
-        return self.pushRepository(self.repository, "derp").addCallback(processEnded)
+  def testHTTPError(self):
+    self.repository.initialize()
 
-    def testHTTPError(self):
-        self.repository.initialize()
+    remoteRepository = self.createTemporaryRepository(None, self.repository.path, True)
 
-        remoteRepository = self.createTemporaryRepository(None, self.repository.path, True)
+    self.repository.addRemote("origin", formatRemote("http", self.http, remoteRepository.path.split('/')[-1]))
+    self.generateComplicatedCommit()
 
-        self.repository.addRemote("origin", formatRemote("http", self.http, remoteRepository.path.split('/')[-1]))
-        self.generateComplicatedCommit()
+    def processEnded(result):
+      self.assertError("Hello world")
+      self.assertNotEqual(self.repository, remoteRepository)
 
-        def processEnded(result):
-            self.assertError("Hello world")
-            self.assertNotEqual(self.repository, remoteRepository)
-
-        return self.pushRepository(self.repository).addCallback(processEnded)
+    return self.pushRepository(self.repository).addCallback(processEnded)

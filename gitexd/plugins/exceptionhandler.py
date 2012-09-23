@@ -5,16 +5,16 @@ from gitexd.protocol.error import ErrorProtocol
 from gitexd.interfaces import IExceptionHandler, IException
 
 class ExceptionHandler(object):
-    implements(IPlugin, IExceptionHandler)
+  implements(IPlugin, IExceptionHandler)
 
-    def handle(self, exception, protocol = None):
-        assert IException.providedBy(exception)
-        assert IProcessProtocol.providedBy(protocol) or protocol is None
+  def handle(self, exception, protocol=None):
+    assert IException.providedBy(exception)
+    assert IProcessProtocol.providedBy(protocol) or protocol is None
 
-        if protocol is None:
-            protocol = exception.getProtocol()
+    if protocol is None:
+      protocol = exception.getProtocol()
 
-        errorProtocol = ErrorProtocol(str(exception))
-        errorProtocol.makeConnection(protocol)
+    errorProtocol = ErrorProtocol(str(exception))
+    errorProtocol.makeConnection(protocol)
 
 exceptionHandler = ExceptionHandler()

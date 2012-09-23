@@ -9,38 +9,38 @@ from gitexd.protocol.error import GitError
 from gitexd.tests.plugins.default.default import UserStub, IUserStub
 
 class Auth(object):
-    implements(IPlugin, IAuth)
+  implements(IPlugin, IAuth)
 
-    SessionInterface = IUserStub
+  SessionInterface = IUserStub
 
-    def allowAnonymousAccess(self, app):
-        return defer.succeed(UserStub())
+  def allowAnonymousAccess(self, app):
+    return defer.succeed(UserStub())
 
-    def authenticateKey(self, app, credentials):
-        assert ISSHPrivateKey.providedBy(credentials)
+  def authenticateKey(self, app, credentials):
+    assert ISSHPrivateKey.providedBy(credentials)
 
-        return defer.succeed(UserStub())
+    return defer.succeed(UserStub())
 
-    def authenticatePassword(self, app, credentials):
-        assert IUsernamePassword.providedBy(credentials)
+  def authenticatePassword(self, app, credentials):
+    assert IUsernamePassword.providedBy(credentials)
 
+    return False
+
+  def authorizeRepository(self, user, repository, requestType):
+    return True
+
+  def authorizeReferences(self, session, refs, requestType):
+    if requestType == PUSH:
+      labels = map(lambda x: x[2].rstrip('\x00'), refs)
+      branches = map(lambda x: x[11:], filter(lambda x: x.startswith("refs/heads/"), labels))
+
+      if "second-branch" in branches:
+        return Failure(GitError("You are not allowed to PUSH to second-branch."))
+      else:
         return False
-
-    def authorizeRepository(self, user, repository, requestType):
-        return True
-
-    def authorizeReferences(self, session, refs, requestType):
-        if requestType == PUSH:
-            labels = map(lambda x: x[2].rstrip('\x00'), refs)
-            branches = map(lambda x: x[11:], filter(lambda x: x.startswith("refs/heads/"), labels))
-
-            if "second-branch" in branches:
-                return Failure(GitError("You are not allowed to PUSH to second-branch."))
-            else:
-                return False
-        elif requestType == PULL:
-            return True
-        else:
-            return False
+    elif requestType == PULL:
+      return True
+    else:
+      return False
 
 auth = Auth()
