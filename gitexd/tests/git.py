@@ -32,10 +32,12 @@ class Repository(object):
     return ret
 
   def executeCommand(self, command, arg=[]):
-    """Executes a Git command with certain arguments in the repository and returns the output.
-Command execution is done outside of Twisted.
+    """
+      Executes a Git command with certain arguments in the repository and returns the output.
+      Command execution is done outside of Twisted.
 
-This command is mainly a convenience method for tests."""
+      This command is mainly a convenience method for tests.
+    """
 
     assert isinstance(command, str)
     assert len(command) > 0
@@ -139,7 +141,7 @@ This command is mainly a convenience method for tests."""
     assert self.isValidGitRepository()
     self._invariant()
 
-    output = self.executeCommand("commit", ["-m", message])
+    output = self.executeCommand("commit", ["--author=\"Hello World <test@example.com>\"", "-m", message])
 
     self._invariant()
     assert message in output

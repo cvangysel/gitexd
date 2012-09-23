@@ -22,7 +22,7 @@ class ErrorTests(ApplicationTest):
       self.assertError("Hello world")
       self.assertNotEqual(self.repository, remoteRepository)
 
-    return self.pushRepository(self.repository, "derp").addCallback(processEnded)
+    return self.pushRepository(self.repository, "derp", keyFile = "test").addCallback(processEnded)
 
   def testHTTPError(self):
     self.repository.initialize()

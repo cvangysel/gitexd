@@ -89,7 +89,7 @@ class GitTestHelper(unittest.TestCase):
 
     for o in output:
       if o.startswith("fatal: remote error: "):
-        self.error = o[len("fatal: remote error: "):].rstrip("\n\r")
+        self.error = o[len("fatal: remote error: "):].rstrip("\n\r").rstrip("\r\n")
         self.success = False
       elif o.startswith("remote: error: "):
         self.error = o[len("remote: error: "):].split("\r\n")[0]
@@ -102,8 +102,9 @@ class GitTestHelper(unittest.TestCase):
         self.success = False
       elif "Writing objects: 100%" in o or "Unpacking objects: 100%" in o:
         self.success = True
-      elif self.success is None:
-        self.success = True
+
+    if self.success is None:
+      self.success = True
 
     return output
 
@@ -230,7 +231,7 @@ class GitProcess(Accumulator):
 
 def formatRemote(protocol, transport, repository, username=None, password=None):
   if username is None:
-    auth = ""
+    auth = "git@"
   else:
     auth = username
 

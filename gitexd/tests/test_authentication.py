@@ -37,8 +37,7 @@ class KeyAuthenticationTests(AuthenticationTest):
       self.assertNoError()
       self.assertEqual(self.repository, remoteRepository)
 
-    return self.pushRepository(self.repository).addCallback(processEnded)
-
+    return self.pushRepository(self.repository, keyFile = "test").addCallback(processEnded)
 
 class PasswordAuthenticationTests(AuthenticationTest):
   def setUp(self):

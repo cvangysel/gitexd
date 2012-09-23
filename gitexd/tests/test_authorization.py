@@ -18,7 +18,7 @@ class RepositoryAuthorizationTests(AuthenticationTest):
       self.assertNoError()
       self.assertEqual(self.repository, remoteRepository)
 
-    return self.pushRepository(self.repository).addCallback(processEnded)
+    return self.pushRepository(self.repository, keyFile = "test").addCallback(processEnded)
 
   def testSSHPull(self):
     remoteRepository = self._testPull(None)
@@ -27,7 +27,7 @@ class RepositoryAuthorizationTests(AuthenticationTest):
       self.assertError("Only PUSH requests are supported.")
       self.assertNotEqual(self.repository, remoteRepository)
 
-    return self.pullRepository(self.repository).addCallback(processEnded)
+    return self.pullRepository(self.repository, keyFile = "test").addCallback(processEnded)
 
   def testHTTPPush(self):
     remoteRepository = self._testPush(None, True)
@@ -69,7 +69,7 @@ class PerLabelAuthorizationTests(ApplicationTest):
       self.assertNotSuccess()
       self.assertNotEqual(self.repository, remoteRepository)
 
-    return self.pushRepository(self.repository, "derp").addCallback(processEnded)
+    return self.pushRepository(self.repository, "derp", keyFile = "test").addCallback(processEnded)
 
   def testHTTPUnauthorizedPush(self):
     self.repository.initialize()
@@ -99,7 +99,7 @@ class PerLabelAuthorizationTests(ApplicationTest):
 
     self.assertNotEqual(self.repository, otherRepository)
 
-    return self.pullRepository(self.repository).addCallback(processEnded)
+    return self.pullRepository(self.repository, keyFile = "test").addCallback(processEnded)
 
   def testHTTPAuthorizedPull(self):
     self.repository.initialize()
