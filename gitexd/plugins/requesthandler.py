@@ -74,7 +74,6 @@ class Request(Object):
     d.addCallback(_callback)
     d.addErrback(authorization.authorizationErrorHandler, self.app, self.getProtocol())
 
-
 class HTTPRequest(Request):
   implements(IRequest)
 
@@ -89,10 +88,13 @@ class HTTPRequest(Request):
 
     self._invariant()
 
-  def finish(self, repository):
+  def finish(self, repository, additionalEnv = {}):
     assert isinstance(repository, str)
+    assert isinstance(additionalEnv, dict)
 
     self._invariant()
+
+    self._environmentVariables.update(additionalEnv)
 
     self._environmentVariables['SCRIPT_FILENAME'] = self.GIT
     self._environmentVariables['GIT_PROJECT_ROOT'] = repository
@@ -111,7 +113,6 @@ class HTTPRequest(Request):
     Request._invariant(self)
     assert isinstance(self._request, twisted.web.http.Request)
 
-
 class SSHRequest(Request):
   implements(IRequest)
 
@@ -126,9 +127,13 @@ class SSHRequest(Request):
 
     self._invariant()
 
-  def finish(self, repository):
+  def finish(self, repository, additionalEnv = {}):
     assert isinstance(repository, str)
+    assert isinstance(additionalEnv, dict)
+
     self._invariant()
+
+    self._environmentVariables.update(additionalEnv)
 
     command = self._request[0] + " '{0}'".format(repository)
     process = reactor.spawnProcess(self._protocol, self.GIT, (self.GIT, 'shell', '-c', command),
@@ -143,21 +148,23 @@ class SSHRequest(Request):
     Request._invariant(self)
     assert isinstance(self._request, list)
 
-
 class RequestHandler(object):
   implements(IPlugin, IRequestHandler)
 
   """The main invocation logic when handling a Git request"""
 
   def _authorizationCallback(self, result, app, request, repository):
-    assert isinstance(result, bool)
+    assert isinstance(result, bool) or isinstance(result, dict)
     assert isinstance(app, Factory)
     assert IRequest.providedBy(request)
 
     """Callback for the dereferred returned by the authorization subsystem."""
 
     if result:
-      request.finish(repository)
+      if not isinstance(result, dict):
+        result = {}
+
+      request.finish(repository, result)
     else:
       app.getErrorHandler().handle(UnauthorizedRepositoryException(request.getProtocol()))
 

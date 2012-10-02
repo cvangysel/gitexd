@@ -98,7 +98,7 @@ class IRequest(Interface):
   def getSession(self):
     """Returns the instance of the interface linked to by :ref:`SessionInterface`."""
 
-  def finish(self, repository):
+  def finish(self, repository, additionalEnv = {}):
     """Executes the request by accessing the requested repository and performing the appropriate actions. This often means that
        the connection is transferred to the correct Git process to handle the connection. If one wishes to hook a Python implementation of the
        `git-receive-pack` or `git-upload-pack` logic, this would be the place to do it.
@@ -107,6 +107,8 @@ class IRequest(Interface):
 
           Args:
               repository (str): The routed repository the request should act upon.
+              additionalEnv (dict): Additional environment variables that should be taken into consideration when
+                  executing the request.
     """
 
 
@@ -203,7 +205,8 @@ class IAuth(Interface):
               requestType (int): `protocol.PULL` or `protocol.PUSH` values (see :ref:`requesttype`) according to the type or request (read or write).
 
           Returns:
-              bool. Depending on whether the request is authorized.
+              bool or dict. Depending on whether the request is authorized. If the request is authorized one can also
+                  return a dictionary that contains additional environment variables.
     """
 
   def authorizeReferences(self, session, refs, requestType):
